@@ -1,0 +1,3 @@
+#define WIFI_SSID "default"
+#define WIFI_PASSWORD "password"
+#define ADMIN_PASSWORD "changeme"
