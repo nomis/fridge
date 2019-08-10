@@ -1,3 +1,2 @@
-.pio/
-pio_local.ini
-src/config.h
+/.pio/
+/pio_local.ini

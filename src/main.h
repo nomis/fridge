@@ -21,9 +21,11 @@
 
 #include <Arduino.h>
 
-#ifdef ARDUINO_ESP8266_WEMOS_D1MINI
-constexpr auto *output = &Serial;
-constexpr unsigned long OUTPUT_BAUD_RATE = 115200;
+#if defined(ARDUINO_ESP8266_WEMOS_D1MINI) || defined(ESP8266_WEMOS_D1MINI)
+static constexpr auto& serial_console = Serial;
+static constexpr unsigned long SERIAL_CONSOLE_BAUD_RATE = 115200;
+static constexpr int RELAY_PIN = 13; /* D7 */
+static constexpr int SENSOR_PIN = 12; /* D6 */
 #endif
 
 #endif
