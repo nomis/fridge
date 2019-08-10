@@ -143,7 +143,7 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 	};
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(exit)}, Commands::no_arguments,
-			[=] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
+			[=] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
 		if (shell.flags_ & CommandFlags::ADMIN) {
 			main_exit_admin_function(shell, no_arguments);
 		} else {
@@ -194,9 +194,9 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(passwd)}, Commands::no_arguments,
 			[] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
-		shell.enter_password(F_(new_password_prompt1), [] (Shell &shell __attribute__((unused)), bool completed, const std::string &password1) {
+		shell.enter_password(F_(new_password_prompt1), [] (Shell &shell, bool completed, const std::string &password1) {
 						if (completed) {
-							shell.enter_password(F_(new_password_prompt2), [password1] (Shell &shell __attribute__((unused)), bool completed, const std::string &password2) {
+							shell.enter_password(F_(new_password_prompt2), [password1] (Shell &shell, bool completed, const std::string &password2) {
 								if (completed) {
 									if (password1 == password2) {
 										Config config;
@@ -236,7 +236,7 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 	}, Commands::no_argument_completion);
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(set), F_(minimum)}, flash_string_vector{F_(celsius_mandatory)},
-			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments) {
+			[] (Shell &shell, const std::vector<std::string> &arguments) {
 		Config config;
 		bool max_changed = config.set_minimum_temperature(String(arguments.front().c_str()).toFloat());
 		config.commit();
@@ -248,7 +248,7 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 	}, Commands::no_argument_completion);
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(set), F_(maximum)}, flash_string_vector{F_(celsius_mandatory)},
-			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments) {
+			[] (Shell &shell, const std::vector<std::string> &arguments) {
 		Config config;
 		bool min_changed = config.set_maximum_temperature(String(arguments.front().c_str()).toFloat());
 		config.commit();
@@ -260,7 +260,7 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 	}, Commands::no_argument_completion);
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN | CommandFlags::LOCAL, flash_string_vector{F_(set), F_(wifi), F_(ssid)}, flash_string_vector{F_(name_mandatory)},
-			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments) {
+			[] (Shell &shell, const std::vector<std::string> &arguments) {
 		Config config;
 		config.set_wifi_ssid(arguments.front());
 		config.commit();
@@ -269,9 +269,9 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN | CommandFlags::LOCAL, flash_string_vector{F_(set), F_(wifi), F_(password)}, Commands::no_arguments,
 			[] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
-		shell.enter_password(F_(new_password_prompt1), [] (Shell &shell __attribute__((unused)), bool completed, const std::string &password1) {
+		shell.enter_password(F_(new_password_prompt1), [] (Shell &shell, bool completed, const std::string &password1) {
 						if (completed) {
-							shell.enter_password(F_(new_password_prompt2), [password1] (Shell &shell __attribute__((unused)), bool completed, const std::string &password2) {
+							shell.enter_password(F_(new_password_prompt2), [password1] (Shell &shell, bool completed, const std::string &password2) {
 								if (completed) {
 									if (password1 == password2) {
 										Config config;
@@ -410,7 +410,7 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(logout)}, Commands::no_arguments, main_logout_function, Commands::no_argument_completion);
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(sensor)}, flash_string_vector{F_(id_mandatory)},
-			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments) {
+			[] (Shell &shell, const std::vector<std::string> &arguments) {
 		FridgeShell &fridge_shell = dynamic_cast<FridgeShell&>(shell);
 
 		fridge_shell.context_ = ShellContext::SENSOR;
