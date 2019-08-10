@@ -95,7 +95,7 @@ MAKE_PSTR(unset, "<unset>")
 MAKE_PSTR(wifi_ssid_fmt, "WiFi SSID = %s");
 MAKE_PSTR(wifi_password_fmt, "WiFi Password = %S");
 
-static constexpr unsigned long invalid_password_delay_ms = 3000;
+static constexpr unsigned long INVALID_PASSWORD_DELAY_MS = 3000;
 
 static void add_console_log_command(std::shared_ptr<Commands> &commands, LogLevel level) {
 	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(console), F_(log), uuid::log::format_level_lowercase(level)}, Commands::no_arguments,
@@ -371,7 +371,7 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 					if (!password.empty() && password == Config().get_admin_password()) {
 						become_admin(shell);
 					} else {
-						shell.delay_until(now + invalid_password_delay_ms, [] (Shell &shell) {
+						shell.delay_until(now + INVALID_PASSWORD_DELAY_MS, [] (Shell &shell) {
 							Shell::logger_.log(uuid::log::Level::NOTICE, uuid::log::Facility::AUTH, "Invalid admin password on console %s", dynamic_cast<FridgeShell&>(shell).console_name().c_str());
 							shell.println(F_(invalid_password));
 						});
