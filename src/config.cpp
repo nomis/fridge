@@ -31,16 +31,18 @@
 
 #include "main.h"
 
+#define MAKE_PSTR(string_name, string_literal) static const char __pstr__##string_name[] __attribute__((__aligned__(sizeof(int)))) PROGMEM = string_literal;
+#define MAKE_PSTR_WORD(string_name) MAKE_PSTR(string_name, #string_name)
+#define F_(string_name) FPSTR(__pstr__##string_name)
+
+namespace fridge {
+
 std::string Config::admin_password_;
 std::string Config::hostname_;
 float Config::minimum_temperature_;
 float Config::maximum_temperature_;
 std::string Config::wifi_ssid_;
 std::string Config::wifi_password_;
-
-#define MAKE_PSTR(string_name, string_literal) static const char __pstr__##string_name[] __attribute__((__aligned__(sizeof(int)))) PROGMEM = string_literal;
-#define MAKE_PSTR_WORD(string_name) MAKE_PSTR(string_name, #string_name)
-#define F_(string_name) FPSTR(__pstr__##string_name)
 
 MAKE_PSTR_WORD(admin_password)
 MAKE_PSTR_WORD(hostname)
@@ -243,3 +245,4 @@ bool Config::write_config(const std::string &filename) {
 	}
 }
 
+} // namespace fridge

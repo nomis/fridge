@@ -52,7 +52,7 @@ void setup() {
 }
 
 void loop() {
-	static std::shared_ptr<FridgeShell> shell;
+	static std::shared_ptr<fridge::FridgeShell> shell;
 
 	uuid::loop();
 	uuid::console::Shell::loop_all();
@@ -65,7 +65,7 @@ void loop() {
 	} else {
 		int c = serial_console.read();
 		if (c == '\x03' || c == '\x0C') {
-			shell = std::make_shared<FridgeStreamConsole>(serial_console, c == '\x0C');
+			shell = std::make_shared<fridge::FridgeStreamConsole>(serial_console, c == '\x0C');
 			shell->start();
 		}
 	}

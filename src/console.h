@@ -27,6 +27,8 @@
 # undef LOCAL
 #endif
 
+namespace fridge {
+
 enum CommandFlags : unsigned int {
 	USER = 0,
 	ADMIN = (1 << 0),
@@ -67,5 +69,7 @@ public:
 
 	virtual std::string console_name();
 };
+
+} // namespace fridge
 
 #endif

@@ -26,6 +26,8 @@
 
 #include <uuid/log.h>
 
+namespace fridge {
+
 class Config {
 public:
 	Config();
@@ -77,5 +79,7 @@ private:
 	bool write_config(const std::string &filename);
 	void write_config(ArduinoJson::JsonDocument &doc);
 };
+
+} // namespace fridge
 
 #endif

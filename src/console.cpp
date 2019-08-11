@@ -32,12 +32,13 @@
 using ::uuid::flash_string_vector;
 using ::uuid::console::Commands;
 using ::uuid::console::Shell;
-using ::uuid::console::StreamConsole;
 using LogLevel = ::uuid::log::Level;
 
 #define MAKE_PSTR(string_name, string_literal) static const char __pstr__##string_name[] __attribute__((__aligned__(sizeof(int)))) PROGMEM = string_literal;
 #define MAKE_PSTR_WORD(string_name) MAKE_PSTR(string_name, #string_name)
 #define F_(string_name) FPSTR(__pstr__##string_name)
+
+namespace fridge {
 
 MAKE_PSTR_WORD(auto)
 MAKE_PSTR_WORD(console)
@@ -580,3 +581,5 @@ FridgeStreamConsole::FridgeStreamConsole(Stream &stream, bool local)
 std::string FridgeStreamConsole::console_name() {
 	return uuid::read_flash_string(F("ttyS0"));
 }
+
+} // namespace fridge
