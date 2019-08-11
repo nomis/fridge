@@ -33,6 +33,7 @@ using ::uuid::flash_string_vector;
 using ::uuid::console::Commands;
 using ::uuid::console::Shell;
 using LogLevel = ::uuid::log::Level;
+using LogFacility = ::uuid::log::Facility;
 
 #define MAKE_PSTR(string_name, string_literal) static const char __pstr__##string_name[] __attribute__((__aligned__(sizeof(int)))) PROGMEM = string_literal;
 #define MAKE_PSTR_WORD(string_name) MAKE_PSTR(string_name, #string_name)
@@ -139,7 +140,7 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 	};
 
 	auto main_exit_admin_function = [] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
-		Shell::logger_.log(uuid::log::Level::INFO, uuid::log::Facility::AUTH, "Admin session closed on console %s", dynamic_cast<FridgeShell&>(shell).console_name().c_str());
+		Shell::logger_.log(LogLevel::INFO, LogFacility::AUTH, "Admin session closed on console %s", dynamic_cast<FridgeShell&>(shell).console_name().c_str());
 		dynamic_cast<FridgeShell&>(shell).flags_ &= ~CommandFlags::ADMIN;
 	};
 
@@ -358,7 +359,7 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(su)}, Commands::no_arguments,
 			[=] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
 		auto become_admin = [] (Shell &shell) {
-			Shell::logger_.log(uuid::log::Level::NOTICE, uuid::log::Facility::AUTH, "Admin session opened on console %s", dynamic_cast<FridgeShell&>(shell).console_name().c_str());
+			Shell::logger_.log(LogLevel::NOTICE, LogFacility::AUTH, "Admin session opened on console %s", dynamic_cast<FridgeShell&>(shell).console_name().c_str());
 			shell.flags_ |= CommandFlags::ADMIN;
 		};
 
@@ -373,7 +374,7 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 						become_admin(shell);
 					} else {
 						shell.delay_until(now + INVALID_PASSWORD_DELAY_MS, [] (Shell &shell) {
-							Shell::logger_.log(uuid::log::Level::NOTICE, uuid::log::Facility::AUTH, "Invalid admin password on console %s", dynamic_cast<FridgeShell&>(shell).console_name().c_str());
+							Shell::logger_.log(LogLevel::NOTICE, LogFacility::AUTH, "Invalid admin password on console %s", dynamic_cast<FridgeShell&>(shell).console_name().c_str());
 							shell.println(F_(invalid_password));
 						});
 					}
@@ -512,11 +513,11 @@ FridgeShell::FridgeShell() : Shell() {
 }
 
 void FridgeShell::started() {
-	logger_.log(uuid::log::Level::INFO, uuid::log::Facility::CONSOLE, "User session opened on console %s", console_name().c_str());
+	logger_.log(LogLevel::INFO, LogFacility::CONSOLE, "User session opened on console %s", console_name().c_str());
 }
 
 void FridgeShell::stopped() {
-	logger_.log(uuid::log::Level::INFO, uuid::log::Facility::CONSOLE, "User session closed on console %s", console_name().c_str());
+	logger_.log(LogLevel::INFO, LogFacility::CONSOLE, "User session closed on console %s", console_name().c_str());
 }
 
 void FridgeShell::display_banner() {
