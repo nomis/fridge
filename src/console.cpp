@@ -325,7 +325,7 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 	};
 	auto show_uptime = [] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
 		shell.print(F("Uptime: "));
-		shell.print(uuid::log::format_timestamp_ms(3, uuid::get_uptime_ms()));
+		shell.print(uuid::log::format_timestamp_ms(uuid::get_uptime_ms(), 3));
 		shell.println();
 	};
 	auto show_version = [] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
