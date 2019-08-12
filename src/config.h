@@ -19,7 +19,6 @@
 #ifndef FRIDGE_SRC_CONFIG_H_
 #define FRIDGE_SRC_CONFIG_H_
 
-#include <Arduino.h>
 #include <ArduinoJson.hpp>
 
 #include <string>
