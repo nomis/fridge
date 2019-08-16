@@ -1,9 +1,3 @@
-[submodule "lib/uuid-common"]
-	path = lib/uuid-common
-	url = https://github.com/nomis/mcu-uuid-common
-[submodule "lib/uuid-log"]
-	path = lib/uuid-log
-	url = https://github.com/nomis/mcu-uuid-log
 [submodule "lib/uuid-console"]
 	path = lib/uuid-console
 	url = https://github.com/nomis/mcu-uuid-console
