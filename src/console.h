@@ -45,8 +45,8 @@ public:
 	~FridgeShell() override = default;
 
 	virtual std::string console_name() = 0;
-
-	std::string sensor_;
+	void enter_sensor_context(std::string sensor);
+	bool exit_context() override;
 
 protected:
 	FridgeShell();
@@ -60,6 +60,9 @@ protected:
 	void stopped() override;
 
 	static std::shared_ptr<uuid::console::Commands> commands_;
+
+private:
+	std::string sensor_;
 };
 
 class FridgeStreamConsole: public uuid::console::StreamConsole, public FridgeShell {

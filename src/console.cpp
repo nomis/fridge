@@ -100,18 +100,18 @@ MAKE_PSTR(wifi_password_fmt, "WiFi Password = %S");
 static constexpr unsigned long INVALID_PASSWORD_DELAY_MS = 3000;
 
 static void add_console_log_command(std::shared_ptr<Commands> &commands, LogLevel level) {
-	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(console), F_(log), uuid::log::format_level_lowercase(level)}, Commands::no_arguments,
+	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(console), F_(log), uuid::log::format_level_lowercase(level)}, Commands::no_arguments(),
 			[=] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
 		shell.set_log_level(level);
 		shell.printfln(F_(log_level_is_fmt), uuid::log::format_level_uppercase(shell.get_log_level()));
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 }
 
 static void add_syslog_level_command(std::shared_ptr<Commands> &commands, LogLevel level) {
-	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(syslog), F_(level), uuid::log::format_level_lowercase(level)}, Commands::no_arguments,
+	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(syslog), F_(level), uuid::log::format_level_lowercase(level)}, Commands::no_arguments(),
 			[=] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
 
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 }
 
 static void setup_commands(std::shared_ptr<Commands> &commands) {
@@ -121,7 +121,7 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 		shell.printfln(F_(log_level_is_fmt), uuid::log::format_level_uppercase(shell.get_log_level()));
 	};
 
-	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(console), F_(log)}, Commands::no_arguments, console_log, Commands::no_argument_completion);
+	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(console), F_(log)}, Commands::no_arguments(), console_log, Commands::no_argument_completion());
 
 	add_console_log_command(commands, LogLevel::OFF);
 	add_console_log_command(commands, LogLevel::EMERG);
@@ -136,65 +136,65 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 	add_console_log_command(commands, LogLevel::ALL);
 
 	auto main_exit_user_function = [] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
-		dynamic_cast<FridgeShell&>(shell).stop();
+		shell.stop();
 	};
 
 	auto main_exit_admin_function = [] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
-		Shell::logger_.log(LogLevel::INFO, LogFacility::AUTH, "Admin session closed on console %s", dynamic_cast<FridgeShell&>(shell).console_name().c_str());
-		dynamic_cast<FridgeShell&>(shell).flags_ &= ~CommandFlags::ADMIN;
+		shell.logger().log(LogLevel::INFO, LogFacility::AUTH, "Admin session closed on console %s", dynamic_cast<FridgeShell&>(shell).console_name().c_str());
+		shell.remove_flags(CommandFlags::ADMIN);
 	};
 
-	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(exit)}, Commands::no_arguments,
+	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(exit)}, Commands::no_arguments(),
 			[=] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
-		if (shell.flags_ & CommandFlags::ADMIN) {
+		if (shell.has_flags(CommandFlags::ADMIN)) {
 			main_exit_admin_function(shell, no_arguments);
 		} else {
 			main_exit_user_function(shell, no_arguments);
 		}
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
-	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(help)}, Commands::no_arguments,
+	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(help)}, Commands::no_arguments(),
 			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
 
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
-	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(relay), F_(on)}, Commands::no_arguments,
+	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(relay), F_(on)}, Commands::no_arguments(),
 			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
 		digitalWrite(RELAY_PIN, HIGH);
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
-	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(relay), F_(off)}, Commands::no_arguments,
+	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(relay), F_(off)}, Commands::no_arguments(),
 			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
 		digitalWrite(RELAY_PIN, LOW);
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
-	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(relay), F_(auto)}, Commands::no_arguments,
+	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(relay), F_(auto)}, Commands::no_arguments(),
 			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
 
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
-	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN | CommandFlags::LOCAL, flash_string_vector{F_(mkfs)}, Commands::no_arguments,
+	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN | CommandFlags::LOCAL, flash_string_vector{F_(mkfs)}, Commands::no_arguments(),
 			[] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
 		if (SPIFFS.begin()) {
-			shell.logger_.warning("Formatting SPIFFS filesystem");
+			shell.logger().warning("Formatting SPIFFS filesystem");
 			if (SPIFFS.format()) {
 				auto msg = F("Formatted SPIFFS filesystem");
-				shell.logger_.warning(msg);
+				shell.logger().warning(msg);
 				shell.println(msg);
 			} else {
 				auto msg = F("Error formatting SPIFFS filesystem");
-				shell.logger_.emerg(msg);
+				shell.logger().emerg(msg);
 				shell.println(msg);
 			}
 		} else {
 			auto msg = F("Unable to mount SPIFFS filesystem");
-			shell.logger_.alert(msg);
+			shell.logger().alert(msg);
 			shell.println(msg);
 		}
 
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
-	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(passwd)}, Commands::no_arguments,
+	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(passwd)}, Commands::no_arguments(),
 			[] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
 		shell.enter_password(F_(new_password_prompt1), [] (Shell &shell, bool completed, const std::string &password1) {
 						if (completed) {
@@ -212,18 +212,18 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 							});
 						}
 					});
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
-	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(set)}, Commands::no_arguments,
+	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(set)}, Commands::no_arguments(),
 			[] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
 		Config config;
 		shell.printfln(F_(minimum_temperature_fmt), config.get_minimum_temperature());
 		shell.printfln(F_(maximum_temperature_fmt), config.get_maximum_temperature());
-		if ((shell.flags_ & CommandFlags::ADMIN) && (shell.flags_ & CommandFlags::LOCAL)) {
+		if (shell.has_flags(CommandFlags::ADMIN | CommandFlags::LOCAL)) {
 			shell.printfln(F_(wifi_ssid_fmt), config.get_wifi_ssid().empty() ? uuid::read_flash_string(F_(unset)).c_str() : config.get_wifi_ssid().c_str());
 			shell.printfln(F_(wifi_password_fmt), config.get_wifi_password().empty() ? F_(unset) : F_(asterisks));
 		}
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(set), F_(hostname)}, flash_string_vector{F_(name_optional)},
 			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments) {
@@ -235,7 +235,7 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 			config.set_hostname(arguments.front());
 		}
 		config.commit();
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(set), F_(minimum)}, flash_string_vector{F_(celsius_mandatory)},
 			[] (Shell &shell, const std::vector<std::string> &arguments) {
@@ -247,7 +247,7 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 		if (max_changed) {
 			shell.printfln(F_(maximum_temperature_fmt), config.get_maximum_temperature());
 		}
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(set), F_(maximum)}, flash_string_vector{F_(celsius_mandatory)},
 			[] (Shell &shell, const std::vector<std::string> &arguments) {
@@ -259,7 +259,7 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 			shell.printfln(F_(minimum_temperature_fmt), config.get_minimum_temperature());
 		}
 		shell.printfln(F_(maximum_temperature_fmt), config.get_maximum_temperature());
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN | CommandFlags::LOCAL, flash_string_vector{F_(set), F_(wifi), F_(ssid)}, flash_string_vector{F_(name_mandatory)},
 			[] (Shell &shell, const std::vector<std::string> &arguments) {
@@ -267,9 +267,9 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 		config.set_wifi_ssid(arguments.front());
 		config.commit();
 		shell.printfln(F_(wifi_ssid_fmt), config.get_wifi_ssid().empty() ? uuid::read_flash_string(F_(unset)).c_str() : config.get_wifi_ssid().c_str());
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
-	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN | CommandFlags::LOCAL, flash_string_vector{F_(set), F_(wifi), F_(password)}, Commands::no_arguments,
+	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN | CommandFlags::LOCAL, flash_string_vector{F_(set), F_(wifi), F_(password)}, Commands::no_arguments(),
 			[] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
 		shell.enter_password(F_(new_password_prompt1), [] (Shell &shell, bool completed, const std::string &password1) {
 						if (completed) {
@@ -287,7 +287,7 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 							});
 						}
 					});
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
 	auto show_memory = [] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
 		shell.printfln(F("Free heap:                %lu bytes"), (unsigned long)ESP.getFreeHeap());
@@ -332,7 +332,7 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 		shell.println(F("Version: " FRIDGE_REVISION));
 	};
 
-	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show)}, Commands::no_arguments,
+	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show)}, Commands::no_arguments(),
 			[=] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
 		show_memory(shell, no_arguments);
 		shell.println();
@@ -347,23 +347,23 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 		show_uptime(shell, no_arguments);
 		shell.println();
 		show_version(shell, no_arguments);
-	}, Commands::no_argument_completion);
-	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(memory)}, Commands::no_arguments, show_relay, Commands::no_argument_completion);
-	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(network)}, Commands::no_arguments, show_network, Commands::no_argument_completion);
-	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(relay)}, Commands::no_arguments, show_relay, Commands::no_argument_completion);
-	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(sensors)}, Commands::no_arguments, show_sensors, Commands::no_argument_completion);
-	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(system)}, Commands::no_arguments, show_relay, Commands::no_argument_completion);
-	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(uptime)}, Commands::no_arguments, show_relay, Commands::no_argument_completion);
-	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(version)}, Commands::no_arguments, show_relay, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
+	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(memory)}, Commands::no_arguments(), show_relay, Commands::no_argument_completion());
+	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(network)}, Commands::no_arguments(), show_network, Commands::no_argument_completion());
+	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(relay)}, Commands::no_arguments(), show_relay, Commands::no_argument_completion());
+	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(sensors)}, Commands::no_arguments(), show_sensors, Commands::no_argument_completion());
+	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(system)}, Commands::no_arguments(), show_relay, Commands::no_argument_completion());
+	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(uptime)}, Commands::no_arguments(), show_relay, Commands::no_argument_completion());
+	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(version)}, Commands::no_arguments(), show_relay, Commands::no_argument_completion());
 
-	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(su)}, Commands::no_arguments,
+	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(su)}, Commands::no_arguments(),
 			[=] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
 		auto become_admin = [] (Shell &shell) {
-			Shell::logger_.log(LogLevel::NOTICE, LogFacility::AUTH, "Admin session opened on console %s", dynamic_cast<FridgeShell&>(shell).console_name().c_str());
-			shell.flags_ |= CommandFlags::ADMIN;
+			shell.logger().log(LogLevel::NOTICE, LogFacility::AUTH, "Admin session opened on console %s", dynamic_cast<FridgeShell&>(shell).console_name().c_str());
+			shell.add_flags(CommandFlags::ADMIN);
 		};
 
-		if (shell.flags_ & CommandFlags::LOCAL) {
+		if (shell.has_flags(CommandFlags::LOCAL)) {
 			become_admin(shell);
 		} else {
 			shell.enter_password(F_(password_prompt), [=] (Shell &shell, bool completed, const std::string &password) {
@@ -374,110 +374,107 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 						become_admin(shell);
 					} else {
 						shell.delay_until(now + INVALID_PASSWORD_DELAY_MS, [] (Shell &shell) {
-							Shell::logger_.log(LogLevel::NOTICE, LogFacility::AUTH, "Invalid admin password on console %s", dynamic_cast<FridgeShell&>(shell).console_name().c_str());
+							shell.logger().log(LogLevel::NOTICE, LogFacility::AUTH, "Invalid admin password on console %s", dynamic_cast<FridgeShell&>(shell).console_name().c_str());
 							shell.println(F_(invalid_password));
 						});
 					}
 				}
 			});
 		}
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
-	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(sync)}, Commands::no_arguments,
+	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(sync)}, Commands::no_arguments(),
 			[] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
 		auto msg = F("Unable to mount SPIFFS filesystem");
 		if (SPIFFS.begin()) {
 			SPIFFS.end();
 			if (!SPIFFS.begin()) {
-				shell.logger_.alert(msg);
+				shell.logger().alert(msg);
 			}
 		} else {
-			shell.logger_.alert(msg);
+			shell.logger().alert(msg);
 		}
 
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
-	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(restart)}, Commands::no_arguments,
+	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(restart)}, Commands::no_arguments(),
 		[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
 			ESP.restart();
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
 	auto main_logout_function = [=] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
-		if (shell.flags_ & CommandFlags::ADMIN) {
+		if (shell.has_flags(CommandFlags::ADMIN)) {
 			main_exit_admin_function(shell, no_arguments);
 		}
 		main_exit_user_function(shell, no_arguments);
 	};
 
-	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(logout)}, Commands::no_arguments, main_logout_function, Commands::no_argument_completion);
+	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(logout)}, Commands::no_arguments(), main_logout_function, Commands::no_argument_completion());
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(sensor)}, flash_string_vector{F_(id_mandatory)},
 			[] (Shell &shell, const std::vector<std::string> &arguments) {
-		FridgeShell &fridge_shell = dynamic_cast<FridgeShell&>(shell);
-
-		fridge_shell.context_ = ShellContext::SENSOR;
-		fridge_shell.sensor_ = arguments.front();
+		dynamic_cast<FridgeShell&>(shell).enter_sensor_context(arguments.front());
 	},
 	[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) -> const std::set<std::string> {
 		return std::set<std::string>{"aaa", "bbb", "ccc"};
 	});
 
-	commands->add_command(ShellContext::SENSOR, CommandFlags::ADMIN, flash_string_vector{F_(delete)}, Commands::no_arguments,
+	commands->add_command(ShellContext::SENSOR, CommandFlags::ADMIN, flash_string_vector{F_(delete)}, Commands::no_arguments(),
 			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
 
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
-	commands->add_command(ShellContext::SENSOR, CommandFlags::USER, flash_string_vector{F_(show)}, Commands::no_arguments,
+	commands->add_command(ShellContext::SENSOR, CommandFlags::USER, flash_string_vector{F_(show)}, Commands::no_arguments(),
 			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
 
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
-	commands->add_command(ShellContext::SENSOR, CommandFlags::USER, flash_string_vector{F_(set)}, Commands::no_arguments,
+	commands->add_command(ShellContext::SENSOR, CommandFlags::USER, flash_string_vector{F_(set)}, Commands::no_arguments(),
 			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
 
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
 	commands->add_command(ShellContext::SENSOR, CommandFlags::ADMIN, flash_string_vector{F_(set), F_(name)}, flash_string_vector{F_(name_optional)},
 			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
 
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
-	commands->add_command(ShellContext::SENSOR, CommandFlags::ADMIN, flash_string_vector{F_(set), F_(type), F_(unknown)}, Commands::no_arguments,
+	commands->add_command(ShellContext::SENSOR, CommandFlags::ADMIN, flash_string_vector{F_(set), F_(type), F_(unknown)}, Commands::no_arguments(),
 			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
 
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
-	commands->add_command(ShellContext::SENSOR, CommandFlags::ADMIN, flash_string_vector{F_(set), F_(type), F_(internal)}, Commands::no_arguments,
+	commands->add_command(ShellContext::SENSOR, CommandFlags::ADMIN, flash_string_vector{F_(set), F_(type), F_(internal)}, Commands::no_arguments(),
 			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
 
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
-	commands->add_command(ShellContext::SENSOR, CommandFlags::ADMIN, flash_string_vector{F_(set), F_(type), F_(external)}, Commands::no_arguments,
+	commands->add_command(ShellContext::SENSOR, CommandFlags::ADMIN, flash_string_vector{F_(set), F_(type), F_(external)}, Commands::no_arguments(),
 			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
 
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
 	auto sensor_exit_function = [] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
-		dynamic_cast<FridgeShell&>(shell).context_ = ShellContext::MAIN;
+		shell.exit_context();
 	};
 
-	commands->add_command(ShellContext::SENSOR, CommandFlags::USER, flash_string_vector{F_(exit)}, Commands::no_arguments, sensor_exit_function, Commands::no_argument_completion);
+	commands->add_command(ShellContext::SENSOR, CommandFlags::USER, flash_string_vector{F_(exit)}, Commands::no_arguments(), sensor_exit_function, Commands::no_argument_completion());
 
-	commands->add_command(ShellContext::SENSOR, CommandFlags::USER, flash_string_vector{F_(logout)}, Commands::no_arguments,
+	commands->add_command(ShellContext::SENSOR, CommandFlags::USER, flash_string_vector{F_(logout)}, Commands::no_arguments(),
 			[=] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
 		sensor_exit_function(shell, no_arguments);
 		main_logout_function(shell, no_arguments);
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(syslog), F_(host)}, flash_string_vector{F_(ip_address_optional)},
 			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
 
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
-	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(syslog), F_(level)}, Commands::no_arguments,
+	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(syslog), F_(level)}, Commands::no_arguments(),
 			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
 
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
 	add_syslog_level_command(commands, LogLevel::OFF);
 	add_syslog_level_command(commands, LogLevel::EMERG);
@@ -491,15 +488,15 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 	add_syslog_level_command(commands, LogLevel::TRACE);
 	add_syslog_level_command(commands, LogLevel::ALL);
 
-	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(syslog), F_(level), F_(log), F_(trace)}, Commands::no_arguments,
+	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(syslog), F_(level), F_(log), F_(trace)}, Commands::no_arguments(),
 			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
 
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 
-	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(syslog), F_(level), F_(log), F_(off)}, Commands::no_arguments,
+	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(syslog), F_(level), F_(log), F_(off)}, Commands::no_arguments(),
 			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
 
-	}, Commands::no_argument_completion);
+	}, Commands::no_argument_completion());
 }
 
 std::shared_ptr<Commands> FridgeShell::commands_ = [] {
@@ -512,12 +509,26 @@ FridgeShell::FridgeShell() : Shell() {
 
 }
 
+void FridgeShell::enter_sensor_context(std::string sensor) {
+	if (context() == ShellContext::MAIN) {
+		enter_context(ShellContext::SENSOR);
+		sensor_ = sensor;
+	}
+}
+
+bool FridgeShell::exit_context() {
+	if (context() == ShellContext::SENSOR) {
+		sensor_ = std::string{};
+	}
+	return Shell::exit_context();
+}
+
 void FridgeShell::started() {
-	logger_.log(LogLevel::INFO, LogFacility::CONSOLE, "User session opened on console %s", console_name().c_str());
+	logger().log(LogLevel::INFO, LogFacility::CONSOLE, "User session opened on console %s", console_name().c_str());
 }
 
 void FridgeShell::stopped() {
-	logger_.log(LogLevel::INFO, LogFacility::CONSOLE, "User session closed on console %s", console_name().c_str());
+	logger().log(LogLevel::INFO, LogFacility::CONSOLE, "User session closed on console %s", console_name().c_str());
 }
 
 void FridgeShell::display_banner() {
@@ -545,7 +556,7 @@ std::string FridgeShell::hostname_text() {
 }
 
 std::string FridgeShell::context_text() {
-	switch (static_cast<ShellContext>(context_)) {
+	switch (static_cast<ShellContext>(context())) {
 	case ShellContext::MAIN:
 		return "/";
 		break;
@@ -559,7 +570,7 @@ std::string FridgeShell::context_text() {
 }
 
 std::string FridgeShell::prompt_suffix() {
-	if (flags_ & CommandFlags::ADMIN) {
+	if (has_flags(CommandFlags::ADMIN)) {
 		return "#";
 	} else {
 		return "$";
@@ -567,7 +578,7 @@ std::string FridgeShell::prompt_suffix() {
 }
 
 void FridgeShell::end_of_transmission() {
-	if (context_ != ShellContext::MAIN || (flags_ & CommandFlags::ADMIN)) {
+	if (context() != ShellContext::MAIN || has_flags(CommandFlags::ADMIN)) {
 		invoke_command(uuid::read_flash_string(F_(exit)));
 	} else {
 		invoke_command(uuid::read_flash_string(F_(logout)));
