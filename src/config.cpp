@@ -61,7 +61,7 @@ void Config::read_config(const ArduinoJson::JsonDocument &doc) {
 }
 
 void Config::write_config(ArduinoJson::JsonDocument &doc) {
-	doc[F_(admin_password)] = get_hostname().c_str();
+	doc[F_(admin_password)] = get_admin_password().c_str();
 	doc[F_(hostname)] = get_hostname().c_str();
 	doc[F_(minimum_temperature_c)] = get_minimum_temperature();
 	doc[F_(maximum_temperature_c)] = get_maximum_temperature();
