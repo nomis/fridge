@@ -1,4 +1,4 @@
-.PHONY: all clean
+.PHONY: all clean upload
 
 all:
 	platformio run
@@ -6,3 +6,6 @@ all:
 clean:
 	platformio run -t clean
 	rm -rf .pio
+
+upload:
+	platformio run -t upload
