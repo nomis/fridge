@@ -5,3 +5,4 @@ all:
 
 clean:
 	platformio run -t clean
+	rm -rf .pio
