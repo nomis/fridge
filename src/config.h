@@ -32,23 +32,23 @@ public:
 	Config();
 	~Config() = default;
 
-	std::string get_admin_password();
-	void set_admin_password(const std::string &password);
+	std::string get_admin_password() const;
+	void set_admin_password(const std::string &admin_password);
 
-	std::string get_hostname();
-	void set_hostname(const std::string &name);
+	std::string get_hostname() const;
+	void set_hostname(const std::string &hostname);
 
-	float get_minimum_temperature();
+	float get_minimum_temperature() const;
 	bool set_minimum_temperature(float temperature, bool load = false);
 
-	float get_maximum_temperature();
+	float get_maximum_temperature() const;
 	bool set_maximum_temperature(float temperature, bool load = false);
 
-	std::string get_wifi_ssid();
-	void set_wifi_ssid(const std::string &name);
+	std::string get_wifi_ssid() const;
+	void set_wifi_ssid(const std::string &wifi_ssid);
 
-	std::string get_wifi_password();
-	void set_wifi_password(const std::string &password);
+	std::string get_wifi_password() const;
+	void set_wifi_password(const std::string &wifi_password);
 
 	void commit();
 

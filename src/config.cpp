@@ -32,42 +32,64 @@
 #include "main.h"
 
 #define MAKE_PSTR(string_name, string_literal) static const char __pstr__##string_name[] __attribute__((__aligned__(sizeof(int)))) PROGMEM = string_literal;
-#define MAKE_PSTR_WORD(string_name) MAKE_PSTR(string_name, #string_name)
-#define F_(string_name) FPSTR(__pstr__##string_name)
 
 namespace fridge {
 
-std::string Config::admin_password_;
-std::string Config::hostname_;
-float Config::minimum_temperature_;
-float Config::maximum_temperature_;
-std::string Config::wifi_ssid_;
-std::string Config::wifi_password_;
+#define FRIDGE_CONFIG_DATA \
+		FRIDGE_CONFIG_SIMPLE(std::string, "", admin_password, "", ().c_str(), "") \
+		FRIDGE_CONFIG_SIMPLE(std::string, "", hostname, "", ().c_str(), "") \
+		FRIDGE_CONFIG_CUSTOM(float, "", minimum_temperature, "_c", (), DEFAULT_MINIMUM_TEMPERATURE_C, true) \
+		FRIDGE_CONFIG_CUSTOM(float, "", maximum_temperature, "_c", (), DEFAULT_MAXIMUM_TEMPERATURE_C, true) \
+		FRIDGE_CONFIG_SIMPLE(std::string, "", wifi_ssid, "", ().c_str(), "") \
+		FRIDGE_CONFIG_SIMPLE(std::string, "", wifi_password, "", ().c_str(), "")
 
-MAKE_PSTR_WORD(admin_password)
-MAKE_PSTR_WORD(hostname)
-MAKE_PSTR_WORD(minimum_temperature_c)
-MAKE_PSTR_WORD(maximum_temperature_c)
-MAKE_PSTR_WORD(wifi_ssid)
-MAKE_PSTR_WORD(wifi_password)
+#define FRIDGE_CONFIG_SIMPLE FRIDGE_CONFIG_GENERIC
+#define FRIDGE_CONFIG_CUSTOM FRIDGE_CONFIG_GENERIC
+
+/* Create member data and flash strings */
+#define FRIDGE_CONFIG_GENERIC(__type, __key_prefix, __name, __key_suffix, __get_function, __read_default, ...) \
+		__type Config::__name##_; \
+		MAKE_PSTR(__name, __key_prefix #__name __key_suffix)
+FRIDGE_CONFIG_DATA
+#undef FRIDGE_CONFIG_GENERIC
 
 void Config::read_config(const ArduinoJson::JsonDocument &doc) {
-	set_admin_password(doc[F_(admin_password)] | "");
-	set_hostname(doc[F_(hostname)] | "");
-	set_minimum_temperature(doc[F_(minimum_temperature_c)] | DEFAULT_MINIMUM_TEMPERATURE_C, true);
-	set_maximum_temperature(doc[F_(maximum_temperature_c)] | DEFAULT_MAXIMUM_TEMPERATURE_C, true);
-	set_wifi_ssid(doc[F_(wifi_ssid)] | "");
-	set_wifi_password(doc[F_(wifi_password)] | "");
+#define FRIDGE_CONFIG_GENERIC(__type, __key_prefix, __name, __key_suffix, __get_function, __read_default, ...) \
+		set_##__name(doc[FPSTR(__pstr__##__name)] | __read_default, ##__VA_ARGS__);
+	FRIDGE_CONFIG_DATA
+#undef FRIDGE_CONFIG_GENERIC
 }
 
 void Config::write_config(ArduinoJson::JsonDocument &doc) {
-	doc[F_(admin_password)] = get_admin_password().c_str();
-	doc[F_(hostname)] = get_hostname().c_str();
-	doc[F_(minimum_temperature_c)] = get_minimum_temperature();
-	doc[F_(maximum_temperature_c)] = get_maximum_temperature();
-	doc[F_(wifi_ssid)] = get_wifi_ssid().c_str();
-	doc[F_(wifi_password)] = get_wifi_password().c_str();
+#define FRIDGE_CONFIG_GENERIC(__type, __key_prefix, __name, __key_suffix, __get_function, __read_default, ...) \
+		doc[FPSTR(__pstr__##__name)] = get_ ## __name __get_function;
+	FRIDGE_CONFIG_DATA
+#undef FRIDGE_CONFIG_GENERIC
 }
+
+#undef FRIDGE_CONFIG_GENERIC
+#undef FRIDGE_CONFIG_SIMPLE
+#undef FRIDGE_CONFIG_CUSTOM
+
+/* Create getters/setters for simple config items only */
+#define FRIDGE_CONFIG_SIMPLE(__type, __key_prefix, __name, __key_suffix, __get_function, __read_default, ...) \
+		__type Config::get_##__name() const { \
+			return __name##_; \
+		} \
+		void Config::set_##__name(const __type &__name) { \
+			__name##_ = __name; \
+		}
+
+/* Create getters for config items with custom setters */
+#define FRIDGE_CONFIG_CUSTOM(__type, __key_prefix, __name, __key_suffix, __get_function, __read_default, ...) \
+		__type Config::get_##__name() const { \
+			return __name##_; \
+		}
+
+FRIDGE_CONFIG_DATA
+
+#undef FRIDGE_CONFIG_SIMPLE
+#undef FRIDGE_CONFIG_CUSTOM
 
 static const char __pstr__config_filename[] __attribute__((__aligned__(sizeof(int)))) PROGMEM = "/config.msgpack";
 static const char __pstr__config_backup_filename[] __attribute__((__aligned__(sizeof(int)))) PROGMEM = "/config.msgpack~";
@@ -105,26 +127,6 @@ Config::Config() {
 	}
 }
 
-std::string Config::get_admin_password() {
-	return admin_password_;
-}
-
-void Config::set_admin_password(const std::string &password) {
-	admin_password_ = password;
-}
-
-std::string Config::get_hostname() {
-	return hostname_;
-}
-
-void Config::set_hostname(const std::string &name) {
-	hostname_ = name;
-}
-
-float Config::get_minimum_temperature() {
-	return minimum_temperature_;
-}
-
 bool Config::set_minimum_temperature(float temperature, bool load) {
 	if (!std::isfinite(temperature)) {
 		if (load) {
@@ -146,10 +148,6 @@ bool Config::set_minimum_temperature(float temperature, bool load) {
 	}
 }
 
-float Config::get_maximum_temperature() {
-	return maximum_temperature_;
-}
-
 bool Config::set_maximum_temperature(float temperature, bool load) {
 	if (!std::isfinite(temperature)) {
 		if (load) {
@@ -169,22 +167,6 @@ bool Config::set_maximum_temperature(float temperature, bool load) {
 	} else {
 		return false;
 	}
-}
-
-std::string Config::get_wifi_ssid() {
-	return wifi_ssid_;
-}
-
-void Config::set_wifi_ssid(const std::string &name) {
-	wifi_ssid_ = name;
-}
-
-std::string Config::get_wifi_password() {
-	return wifi_password_;
-}
-
-void Config::set_wifi_password(const std::string &password) {
-	wifi_password_ = password;
 }
 
 void Config::commit() {
