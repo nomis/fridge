@@ -118,7 +118,7 @@ static void add_syslog_level_command(std::shared_ptr<Commands> &commands, LogLev
 }
 
 static void setup_commands(std::shared_ptr<Commands> &commands) {
-	const std::vector<std::string> no_arguments{};
+	#define NO_ARGUMENTS std::vector<std::string>{}
 
 	auto console_log = [] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
 		shell.printfln(F_(log_level_is_fmt), uuid::log::format_level_uppercase(shell.get_log_level()));
@@ -150,9 +150,9 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(exit)},
 			[=] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
 		if (shell.has_flags(CommandFlags::ADMIN)) {
-			main_exit_admin_function(shell, no_arguments);
+			main_exit_admin_function(shell, NO_ARGUMENTS);
 		} else {
-			main_exit_user_function(shell, no_arguments);
+			main_exit_user_function(shell, NO_ARGUMENTS);
 		}
 	});
 
@@ -336,19 +336,19 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show)},
 			[=] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
-		show_memory(shell, no_arguments);
+		show_memory(shell, NO_ARGUMENTS);
 		shell.println();
-		show_network(shell, no_arguments);
+		show_network(shell, NO_ARGUMENTS);
 		shell.println();
-		show_relay(shell, no_arguments);
+		show_relay(shell, NO_ARGUMENTS);
 		shell.println();
-		show_sensors(shell, no_arguments);
+		show_sensors(shell, NO_ARGUMENTS);
 		shell.println();
-		show_system(shell, no_arguments);
+		show_system(shell, NO_ARGUMENTS);
 		shell.println();
-		show_uptime(shell, no_arguments);
+		show_uptime(shell, NO_ARGUMENTS);
 		shell.println();
-		show_version(shell, no_arguments);
+		show_version(shell, NO_ARGUMENTS);
 	});
 	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(memory)}, show_relay);
 	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(network)}, show_network);
@@ -406,9 +406,9 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 
 	auto main_logout_function = [=] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
 		if (shell.has_flags(CommandFlags::ADMIN)) {
-			main_exit_admin_function(shell, no_arguments);
+			main_exit_admin_function(shell, NO_ARGUMENTS);
 		}
-		main_exit_user_function(shell, no_arguments);
+		main_exit_user_function(shell, NO_ARGUMENTS);
 	};
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(logout)}, main_logout_function);
@@ -464,8 +464,8 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 
 	commands->add_command(ShellContext::SENSOR, CommandFlags::USER, flash_string_vector{F_(logout)},
 			[=] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
-		sensor_exit_function(shell, no_arguments);
-		main_logout_function(shell, no_arguments);
+		sensor_exit_function(shell, NO_ARGUMENTS);
+		main_logout_function(shell, NO_ARGUMENTS);
 	});
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(syslog), F_(host)}, flash_string_vector{F_(ip_address_optional)},
