@@ -21,7 +21,6 @@
 #include <Arduino.h>
 #include <FS.h>
 
-#include <list>
 #include <memory>
 #include <string>
 #include <vector>
@@ -417,8 +416,8 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 			[] (Shell &shell, const std::vector<std::string> &arguments) {
 		dynamic_cast<FridgeShell&>(shell).enter_sensor_context(arguments.front());
 	},
-	[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) -> const std::list<std::string> {
-		return std::list<std::string>{"aaa", "bbb", "ccc"};
+	[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) -> const std::vector<std::string> {
+		return std::vector<std::string>{"aaa", "bbb", "ccc"};
 	});
 
 	commands->add_command(ShellContext::SENSOR, CommandFlags::ADMIN, flash_string_vector{F_(delete)},

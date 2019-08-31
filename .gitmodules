@@ -1,3 +1,0 @@
-[submodule "lib/uuid-console"]
-	path = lib/uuid-console
-	url = https://github.com/nomis/mcu-uuid-console
