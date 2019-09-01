@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
+#include "fridge/config.h"
 
 #include <Arduino.h>
 #include <FS.h>
@@ -29,7 +29,7 @@
 #include <uuid/log.h>
 #include <ArduinoJson.hpp>
 
-#include "main.h"
+#include "fridge/fridge.h"
 
 #define MAKE_PSTR(string_name, string_literal) static const char __pstr__##string_name[] __attribute__((__aligned__(sizeof(int)))) PROGMEM = string_literal;
 

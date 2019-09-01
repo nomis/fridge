@@ -16,10 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "console.h"
+#include "fridge/console.h"
 
 #include <Arduino.h>
 #include <FS.h>
+#ifdef ARDUINO_ARCH_ESP8266
+# include <ESP8266WiFi.h>
+#else
+# include <WiFi.h>
+#endif
 
 #include <memory>
 #include <string>
@@ -28,8 +33,9 @@
 #include <uuid/console.h>
 #include <uuid/log.h>
 
-#include "config.h"
-#include "main.h"
+#include "fridge/config.h"
+#include "fridge/fridge.h"
+#include "fridge/network.h"
 
 using ::uuid::flash_string_vector;
 using ::uuid::console::Commands;
@@ -44,8 +50,10 @@ using LogFacility = ::uuid::log::Facility;
 namespace fridge {
 
 MAKE_PSTR_WORD(auto)
+MAKE_PSTR_WORD(connect)
 MAKE_PSTR_WORD(console)
 MAKE_PSTR_WORD(delete)
+MAKE_PSTR_WORD(disconnect)
 MAKE_PSTR_WORD(exit)
 MAKE_PSTR_WORD(external)
 MAKE_PSTR_WORD(help)
@@ -65,13 +73,16 @@ MAKE_PSTR_WORD(off)
 MAKE_PSTR_WORD(on)
 MAKE_PSTR_WORD(passwd)
 MAKE_PSTR_WORD(password)
+MAKE_PSTR_WORD(reconnect)
 MAKE_PSTR_WORD(relay)
 MAKE_PSTR_WORD(restart)
+MAKE_PSTR_WORD(scan)
 MAKE_PSTR_WORD(sensor)
 MAKE_PSTR_WORD(sensors)
 MAKE_PSTR_WORD(set)
 MAKE_PSTR_WORD(show)
 MAKE_PSTR_WORD(ssid)
+MAKE_PSTR_WORD(status)
 MAKE_PSTR_WORD(su)
 MAKE_PSTR_WORD(sync)
 MAKE_PSTR_WORD(syslog)
@@ -156,24 +167,18 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 	});
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(help)},
-			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
-
+			[] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
+		shell.print_all_available_commands();
 	});
 
-	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(relay), F_(on)},
-			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
-		digitalWrite(RELAY_PIN, HIGH);
-	});
+	auto main_logout_function = [=] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
+		if (shell.has_flags(CommandFlags::ADMIN)) {
+			main_exit_admin_function(shell, NO_ARGUMENTS);
+		}
+		main_exit_user_function(shell, NO_ARGUMENTS);
+	};
 
-	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(relay), F_(off)},
-			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
-		digitalWrite(RELAY_PIN, LOW);
-	});
-
-	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(relay), F_(auto)},
-			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
-
-	});
+	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(logout)}, main_logout_function);
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN | CommandFlags::LOCAL, flash_string_vector{F_(mkfs)},
 			[] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
@@ -213,6 +218,26 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 							});
 						}
 					});
+	});
+
+	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(relay), F_(on)},
+			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
+		Fridge::relay(true);
+	});
+
+	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(relay), F_(off)},
+			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
+		Fridge::relay(false);
+	});
+
+	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(relay), F_(auto)},
+			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
+
+	});
+
+	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(restart)},
+		[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
+			ESP.restart();
 	});
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(set)},
@@ -268,6 +293,10 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 		config.set_wifi_ssid(arguments.front());
 		config.commit();
 		shell.printfln(F_(wifi_ssid_fmt), config.get_wifi_ssid().empty() ? uuid::read_flash_string(F_(unset)).c_str() : config.get_wifi_ssid().c_str());
+	},
+	[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) -> std::vector<std::string> {
+		Config config;
+		return std::vector<std::string>{config.get_wifi_ssid()};
 	});
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN | CommandFlags::LOCAL, flash_string_vector{F_(set), F_(wifi), F_(password)},
@@ -296,8 +325,8 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 		shell.printfln(F("Heap fragmentation:       %u%%"), ESP.getHeapFragmentation());
 		shell.printfln(F("Free continuations stack: %lu bytes"), (unsigned long)ESP.getFreeContStack());
 	};
-	auto show_network = [] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
-
+	auto show_network = [] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
+		Network::print_status(shell);
 	};
 	auto show_relay = [] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
 
@@ -384,34 +413,6 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 		}
 	});
 
-	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(sync)},
-			[] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
-		auto msg = F("Unable to mount SPIFFS filesystem");
-		if (SPIFFS.begin()) {
-			SPIFFS.end();
-			if (!SPIFFS.begin()) {
-				shell.logger().alert(msg);
-			}
-		} else {
-			shell.logger().alert(msg);
-		}
-
-	});
-
-	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(restart)},
-		[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
-			ESP.restart();
-	});
-
-	auto main_logout_function = [=] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
-		if (shell.has_flags(CommandFlags::ADMIN)) {
-			main_exit_admin_function(shell, NO_ARGUMENTS);
-		}
-		main_exit_user_function(shell, NO_ARGUMENTS);
-	};
-
-	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(logout)}, main_logout_function);
-
 	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(sensor)}, flash_string_vector{F_(id_mandatory)},
 			[] (Shell &shell, const std::vector<std::string> &arguments) {
 		dynamic_cast<FridgeShell&>(shell).enter_sensor_context(arguments.front());
@@ -423,6 +424,23 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 	commands->add_command(ShellContext::SENSOR, CommandFlags::ADMIN, flash_string_vector{F_(delete)},
 			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
 
+	});
+
+	auto sensor_exit_function = [] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
+		shell.exit_context();
+	};
+
+	commands->add_command(ShellContext::SENSOR, CommandFlags::USER, flash_string_vector{F_(exit)}, sensor_exit_function);
+
+	commands->add_command(ShellContext::SENSOR, CommandFlags::USER, flash_string_vector{F_(help)},
+			[] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
+		shell.print_all_available_commands();
+	});
+
+	commands->add_command(ShellContext::SENSOR, CommandFlags::USER, flash_string_vector{F_(logout)},
+			[=] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
+		sensor_exit_function(shell, NO_ARGUMENTS);
+		main_logout_function(shell, NO_ARGUMENTS);
 	});
 
 	commands->add_command(ShellContext::SENSOR, CommandFlags::USER, flash_string_vector{F_(show)},
@@ -455,16 +473,18 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 
 	});
 
-	auto sensor_exit_function = [] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
-		shell.exit_context();
-	};
+	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(sync)},
+			[] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
+		auto msg = F("Unable to mount SPIFFS filesystem");
+		if (SPIFFS.begin()) {
+			SPIFFS.end();
+			if (!SPIFFS.begin()) {
+				shell.logger().alert(msg);
+			}
+		} else {
+			shell.logger().alert(msg);
+		}
 
-	commands->add_command(ShellContext::SENSOR, CommandFlags::USER, flash_string_vector{F_(exit)}, sensor_exit_function);
-
-	commands->add_command(ShellContext::SENSOR, CommandFlags::USER, flash_string_vector{F_(logout)},
-			[=] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
-		sensor_exit_function(shell, NO_ARGUMENTS);
-		main_logout_function(shell, NO_ARGUMENTS);
 	});
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(syslog), F_(host)}, flash_string_vector{F_(ip_address_optional)},
@@ -497,6 +517,31 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(syslog), F_(level), F_(log), F_(off)},
 			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
 
+	});
+
+	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN | CommandFlags::LOCAL, flash_string_vector{F_(wifi), F_(connect)},
+			[&] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
+		Network::connect();
+	});
+
+	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN | CommandFlags::LOCAL, flash_string_vector{F_(wifi), F_(disconnect)},
+			[&] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
+		Network::disconnect();
+	});
+
+	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN | CommandFlags::LOCAL, flash_string_vector{F_(wifi), F_(reconnect)},
+			[&] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
+		Network::reconnect();
+	});
+
+	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN | CommandFlags::LOCAL, flash_string_vector{F_(wifi), F_(scan)},
+			[] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
+		Network::scan(shell);
+	});
+
+	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN | CommandFlags::LOCAL, flash_string_vector{F_(wifi), F_(status)},
+			[&] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
+		Network::print_status(shell);
 	});
 }
 

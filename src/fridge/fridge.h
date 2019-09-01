@@ -16,16 +16,46 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef FRIDGE_SRC_MAIN_H_
-#define FRIDGE_SRC_MAIN_H_
+#ifndef FRIDGE_FRIDGE_H_
+#define FRIDGE_FRIDGE_H_
 
 #include <Arduino.h>
 
+#include <memory>
+
+#include "fridge/console.h"
+
+namespace fridge {
+
+class Fridge {
+private:
 #if defined(ARDUINO_ESP8266_WEMOS_D1MINI) || defined(ESP8266_WEMOS_D1MINI)
-static constexpr auto& serial_console = Serial;
-static constexpr unsigned long SERIAL_CONSOLE_BAUD_RATE = 115200;
-static constexpr int RELAY_PIN = 13; /* D7 */
-static constexpr int SENSOR_PIN = 12; /* D6 */
+	static constexpr unsigned long SERIAL_CONSOLE_BAUD_RATE = 115200;
+	static constexpr auto& serial_console_ = Serial;
+
+	static constexpr int RELAY_PIN = 13; /* D7 */
+	static constexpr int SENSOR_PIN = 12; /* D6 */
+	static constexpr int BUZZER_PIN = 14; /* D5 */
+#else
+# error "Unknown board"
 #endif
+
+public:
+	static void start();
+	static void loop();
+
+	static void relay(bool value);
+	static void buzzer(bool value);
+
+private:
+	Fridge() = delete;
+
+	static void shell_prompt();
+
+	static uuid::log::Logger logger_;
+	static std::shared_ptr<fridge::FridgeShell> shell_;
+};
+
+} // namespace fridge
 
 #endif

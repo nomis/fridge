@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef FRIDGE_SRC_CONFIG_H_
-#define FRIDGE_SRC_CONFIG_H_
+#ifndef FRIDGE_CONFIG_H_
+#define FRIDGE_CONFIG_H_
 
 #include <ArduinoJson.hpp>
 

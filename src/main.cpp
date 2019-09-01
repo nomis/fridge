@@ -16,59 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "main.h"
-
 #include <Arduino.h>
 
-#include <memory>
-
-#include <uuid/common.h>
-#include <uuid/console.h>
-#include <uuid/log.h>
-
-#include "console.h"
-#include "config.h"
-
-static const char __pstr__logger_name[] __attribute__((__aligned__(sizeof(int)))) PROGMEM = "main";
-static uuid::log::Logger logger_{FPSTR(__pstr__logger_name), uuid::log::Facility::KERN};
-
-static void shell_prompt() {
-	serial_console.println();
-	serial_console.println(F("Press ^C to activate this console"));
-}
+#include "fridge/fridge.h"
 
 void setup() {
-	logger_.info(F("System startup (fridge " FRIDGE_REVISION ")"));
-	logger_.info(F("Reset: %s"), ESP.getResetInfo().c_str());
-
-	pinMode(RELAY_PIN, OUTPUT);
-	digitalWrite(RELAY_PIN, LOW);
-
-	serial_console.begin(SERIAL_CONSOLE_BAUD_RATE);
-	serial_console.println();
-	serial_console.println(F("fridge " FRIDGE_REVISION));
-
-	shell_prompt();
+	fridge::Fridge::start();
 }
 
 void loop() {
-	static std::shared_ptr<fridge::FridgeShell> shell;
-
-	uuid::loop();
-	uuid::console::Shell::loop_all();
-
-	if (shell) {
-		if (!shell->running()) {
-			shell.reset();
-			shell_prompt();
-		}
-	} else {
-		int c = serial_console.read();
-		if (c == '\x03' || c == '\x0C') {
-			shell = std::make_shared<fridge::FridgeStreamConsole>(serial_console, c == '\x0C');
-			shell->start();
-		}
-	}
-
+	fridge::Fridge::loop();
 	::yield();
 }
