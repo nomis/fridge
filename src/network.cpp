@@ -39,18 +39,14 @@ static const char __pstr__logger_name[] __attribute__((__aligned__(sizeof(int)))
 namespace fridge {
 
 uuid::log::Logger Network::logger_{FPSTR(__pstr__logger_name), uuid::log::Facility::KERN};
-WiFiEventHandler Network::sta_mode_connected_;
-WiFiEventHandler Network::sta_mode_disconnected_;
-WiFiEventHandler Network::sta_mode_got_ip_;
-WiFiEventHandler Network::sta_mode_dhcp_timeout_;
 
 void Network::start() {
 	WiFi.persistent(false);
 
-	sta_mode_connected_ = WiFi.onStationModeConnected(std::bind(sta_mode_connected, std::placeholders::_1));
-	sta_mode_disconnected_ = WiFi.onStationModeDisconnected(std::bind(sta_mode_disconnected, std::placeholders::_1));
-	sta_mode_got_ip_ = WiFi.onStationModeGotIP(std::bind(sta_mode_got_ip, std::placeholders::_1));
-	sta_mode_dhcp_timeout_ = WiFi.onStationModeDHCPTimeout(std::bind(sta_mode_dhcp_timeout));
+	sta_mode_connected_ = WiFi.onStationModeConnected(std::bind(&Network::sta_mode_connected, this, std::placeholders::_1));
+	sta_mode_disconnected_ = WiFi.onStationModeDisconnected(std::bind(&Network::sta_mode_disconnected, this, std::placeholders::_1));
+	sta_mode_got_ip_ = WiFi.onStationModeGotIP(std::bind(&Network::sta_mode_got_ip, this, std::placeholders::_1));
+	sta_mode_dhcp_timeout_ = WiFi.onStationModeDHCPTimeout(std::bind(&Network::sta_mode_dhcp_timeout, this));
 
 	connect();
 }

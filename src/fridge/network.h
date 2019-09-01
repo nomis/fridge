@@ -33,26 +33,25 @@ namespace fridge {
 
 class Network {
 public:
-	static void start();
 	static void connect();
 	static void reconnect();
 	static void disconnect();
 	static void scan(uuid::console::Shell &shell);
 	static void print_status(uuid::console::Shell &shell);
 
-private:
-	Network() = delete;
+	void start();
 
-	static void sta_mode_connected(const WiFiEventStationModeConnected &event);
-	static void sta_mode_disconnected(const WiFiEventStationModeDisconnected &event);
-	static void sta_mode_got_ip(const WiFiEventStationModeGotIP &event);
-	static void sta_mode_dhcp_timeout();
+private:
+	void sta_mode_connected(const WiFiEventStationModeConnected &event);
+	void sta_mode_disconnected(const WiFiEventStationModeDisconnected &event);
+	void sta_mode_got_ip(const WiFiEventStationModeGotIP &event);
+	void sta_mode_dhcp_timeout();
 
 	static uuid::log::Logger logger_;
-	static ::WiFiEventHandler sta_mode_connected_;
-	static ::WiFiEventHandler sta_mode_disconnected_;
-	static ::WiFiEventHandler sta_mode_got_ip_;
-	static ::WiFiEventHandler sta_mode_dhcp_timeout_;
+	::WiFiEventHandler sta_mode_connected_;
+	::WiFiEventHandler sta_mode_disconnected_;
+	::WiFiEventHandler sta_mode_got_ip_;
+	::WiFiEventHandler sta_mode_dhcp_timeout_;
 };
 
 } // namespace fridge

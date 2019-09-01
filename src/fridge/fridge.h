@@ -23,7 +23,10 @@
 
 #include <memory>
 
+#include <uuid/syslog.h>
+
 #include "fridge/console.h"
+#include "fridge/network.h"
 
 namespace fridge {
 
@@ -47,12 +50,16 @@ public:
 	static void relay(bool value);
 	static void buzzer(bool value);
 
+	static void config_syslog();
+
 private:
 	Fridge() = delete;
 
 	static void shell_prompt();
 
 	static uuid::log::Logger logger_;
+	static fridge::Network network_;
+	static uuid::syslog::SyslogService syslog_;
 	static std::shared_ptr<fridge::FridgeShell> shell_;
 };
 

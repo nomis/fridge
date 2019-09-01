@@ -20,6 +20,7 @@
 
 #include <Arduino.h>
 #include <FS.h>
+#include <IPAddress.h>
 
 #include <cmath>
 #include <string>
@@ -41,10 +42,13 @@ namespace fridge {
 		FRIDGE_CONFIG_CUSTOM(float, "", minimum_temperature, "_c", (), DEFAULT_MINIMUM_TEMPERATURE_C, true) \
 		FRIDGE_CONFIG_CUSTOM(float, "", maximum_temperature, "_c", (), DEFAULT_MAXIMUM_TEMPERATURE_C, true) \
 		FRIDGE_CONFIG_SIMPLE(std::string, "", wifi_ssid, "", ().c_str(), "") \
-		FRIDGE_CONFIG_SIMPLE(std::string, "", wifi_password, "", ().c_str(), "")
+		FRIDGE_CONFIG_SIMPLE(std::string, "", wifi_password, "", ().c_str(), "") \
+		FRIDGE_CONFIG_CUSTOM(std::string, "", syslog_host, "", ().c_str(), "") \
+		FRIDGE_CONFIG_ENUM(uuid::log::Level, "", syslog_level, "", (), uuid::log::Level::OFF)
 
 #define FRIDGE_CONFIG_SIMPLE FRIDGE_CONFIG_GENERIC
 #define FRIDGE_CONFIG_CUSTOM FRIDGE_CONFIG_GENERIC
+#define FRIDGE_CONFIG_ENUM FRIDGE_CONFIG_GENERIC
 
 /* Create member data and flash strings */
 #define FRIDGE_CONFIG_GENERIC(__type, __key_prefix, __name, __key_suffix, __get_function, __read_default, ...) \
@@ -53,16 +57,23 @@ namespace fridge {
 FRIDGE_CONFIG_DATA
 #undef FRIDGE_CONFIG_GENERIC
 
+#undef FRIDGE_CONFIG_ENUM
+
 void Config::read_config(const ArduinoJson::JsonDocument &doc) {
 #define FRIDGE_CONFIG_GENERIC(__type, __key_prefix, __name, __key_suffix, __get_function, __read_default, ...) \
 		set_##__name(doc[FPSTR(__pstr__##__name)] | __read_default, ##__VA_ARGS__);
+#define FRIDGE_CONFIG_ENUM(__type, __key_prefix, __name, __key_suffix, __get_function, __read_default, ...) \
+		set_##__name(static_cast<__type>(doc[FPSTR(__pstr__##__name)] | static_cast<int>(__read_default)), ##__VA_ARGS__);
 	FRIDGE_CONFIG_DATA
 #undef FRIDGE_CONFIG_GENERIC
+#undef FRIDGE_CONFIG_ENUM
 }
 
 void Config::write_config(ArduinoJson::JsonDocument &doc) {
 #define FRIDGE_CONFIG_GENERIC(__type, __key_prefix, __name, __key_suffix, __get_function, __read_default, ...) \
 		doc[FPSTR(__pstr__##__name)] = get_ ## __name __get_function;
+#define FRIDGE_CONFIG_ENUM(__type, __key_prefix, __name, __key_suffix, __get_function, __read_default, ...) \
+		doc[FPSTR(__pstr__##__name)] = static_cast<int>(get_ ## __name __get_function);
 	FRIDGE_CONFIG_DATA
 #undef FRIDGE_CONFIG_GENERIC
 }
@@ -70,6 +81,7 @@ void Config::write_config(ArduinoJson::JsonDocument &doc) {
 #undef FRIDGE_CONFIG_GENERIC
 #undef FRIDGE_CONFIG_SIMPLE
 #undef FRIDGE_CONFIG_CUSTOM
+#undef FRIDGE_CONFIG_ENUM
 
 /* Create getters/setters for simple config items only */
 #define FRIDGE_CONFIG_SIMPLE(__type, __key_prefix, __name, __key_suffix, __get_function, __read_default, ...) \
@@ -77,6 +89,13 @@ void Config::write_config(ArduinoJson::JsonDocument &doc) {
 			return __name##_; \
 		} \
 		void Config::set_##__name(const __type &__name) { \
+			__name##_ = __name; \
+		}
+#define FRIDGE_CONFIG_ENUM(__type, __key_prefix, __name, __key_suffix, __get_function, __read_default, ...) \
+		__type Config::get_##__name() const { \
+			return __name##_; \
+		} \
+		void Config::set_##__name(__type __name) { \
 			__name##_ = __name; \
 		}
 
@@ -90,6 +109,7 @@ FRIDGE_CONFIG_DATA
 
 #undef FRIDGE_CONFIG_SIMPLE
 #undef FRIDGE_CONFIG_CUSTOM
+#undef FRIDGE_CONFIG_ENUM
 
 static const char __pstr__config_filename[] __attribute__((__aligned__(sizeof(int)))) PROGMEM = "/config.msgpack";
 static const char __pstr__config_backup_filename[] __attribute__((__aligned__(sizeof(int)))) PROGMEM = "/config.msgpack~";
@@ -166,6 +186,16 @@ bool Config::set_maximum_temperature(float temperature, bool load) {
 		return true;
 	} else {
 		return false;
+	}
+}
+
+void Config::set_syslog_host(const std::string &syslog_host) {
+	IPAddress addr;
+
+	if (addr.fromString(syslog_host.c_str())) {
+		syslog_host_= syslog_host;
+	} else {
+		syslog_host_.clear();
 	}
 }
 

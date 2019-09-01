@@ -25,6 +25,7 @@
 #else
 # include <WiFi.h>
 #endif
+#include <time.h>
 
 #include <memory>
 #include <string>
@@ -95,6 +96,7 @@ MAKE_PSTR_WORD(version)
 MAKE_PSTR_WORD(wifi)
 MAKE_PSTR(asterisks, "********")
 MAKE_PSTR(celsius_mandatory, "<°C>")
+MAKE_PSTR(host_is_fmt, "Host = %s")
 MAKE_PSTR(id_mandatory, "<id>")
 MAKE_PSTR(invalid_password, "su: incorrect password")
 MAKE_PSTR(ip_address_optional, "[IP address]")
@@ -123,7 +125,11 @@ static void add_console_log_command(std::shared_ptr<Commands> &commands, LogLeve
 static void add_syslog_level_command(std::shared_ptr<Commands> &commands, LogLevel level) {
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(syslog), F_(level), uuid::log::format_level_lowercase(level)},
 			[=] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
-
+		Config config;
+		config.set_syslog_level(level);
+		config.commit();
+		shell.printfln(F_(log_level_is_fmt), uuid::log::format_level_uppercase(config.get_syslog_level()));
+		Fridge::config_syslog();
 	});
 }
 
@@ -261,6 +267,8 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 			config.set_hostname(arguments.front());
 		}
 		config.commit();
+
+		Fridge::config_syslog();
 	});
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(set), F_(minimum)}, flash_string_vector{F_(celsius_mandatory)},
@@ -357,6 +365,21 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 		shell.print(F("Uptime: "));
 		shell.print(uuid::log::format_timestamp_ms(uuid::get_uptime_ms(), 3));
 		shell.println();
+
+		struct timeval tv;
+		// time() does not return UTC on the ESP8266: https://github.com/esp8266/Arduino/issues/4637
+		if (gettimeofday(&tv, nullptr) == 0) {
+			struct tm tm;
+
+			tm.tm_year = 0;
+			gmtime_r(&tv.tv_sec, &tm);
+
+			if (tm.tm_year != 0) {
+				shell.printfln(F("Time: %04u-%02u-%02uT%02u:%02u:%02u.%06luZ"),
+						tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+						tm.tm_hour, tm.tm_min, tm.tm_sec, (unsigned long)tv.tv_usec);
+			}
+		}
 	};
 	auto show_version = [] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
 		shell.println(F("Version: " FRIDGE_REVISION));
@@ -488,13 +511,21 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 	});
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(syslog), F_(host)}, flash_string_vector{F_(ip_address_optional)},
-			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
-
+			[] (Shell &shell, const std::vector<std::string> &arguments) {
+		Config config;
+		if (!arguments.empty()) {
+			config.set_syslog_host(arguments[0]);
+			config.commit();
+		}
+		auto host = config.get_syslog_host();
+		shell.printfln(F_(host_is_fmt), !host.empty() ? host.c_str() : uuid::read_flash_string(F_(unset)).c_str());
+		Fridge::config_syslog();
 	});
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(syslog), F_(level)},
-			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
-
+			[] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
+		Config config;
+		shell.printfln(F_(log_level_is_fmt), uuid::log::format_level_uppercase(config.get_syslog_level()));
 	});
 
 	add_syslog_level_command(commands, LogLevel::OFF);
@@ -508,16 +539,6 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 	add_syslog_level_command(commands, LogLevel::DEBUG);
 	add_syslog_level_command(commands, LogLevel::TRACE);
 	add_syslog_level_command(commands, LogLevel::ALL);
-
-	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(syslog), F_(level), F_(log), F_(trace)},
-			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
-
-	});
-
-	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(syslog), F_(level), F_(log), F_(off)},
-			[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
-
-	});
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN | CommandFlags::LOCAL, flash_string_vector{F_(wifi), F_(connect)},
 			[&] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {

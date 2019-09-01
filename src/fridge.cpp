@@ -25,6 +25,7 @@
 #include <uuid/common.h>
 #include <uuid/console.h>
 #include <uuid/log.h>
+#include <uuid/syslog.h>
 
 #include "fridge/config.h"
 #include "fridge/console.h"
@@ -37,6 +38,8 @@ static const char __pstr__disabled[] __attribute__((__aligned__(sizeof(int)))) P
 namespace fridge {
 
 uuid::log::Logger Fridge::logger_{FPSTR(__pstr__logger_name), uuid::log::Facility::KERN};
+fridge::Network Fridge::network_;
+uuid::syslog::SyslogService Fridge::syslog_;
 std::shared_ptr<FridgeShell> Fridge::shell_;
 
 void Fridge::start() {
@@ -45,6 +48,8 @@ void Fridge::start() {
 
 	pinMode(RELAY_PIN, OUTPUT);
 	digitalWrite(RELAY_PIN, LOW);
+
+	syslog_.start();
 
 	logger_.info(F("System startup (fridge " FRIDGE_REVISION ")"));
 	logger_.info(F("Reset: %s"), ESP.getResetInfo().c_str());
@@ -55,16 +60,16 @@ void Fridge::start() {
 	serial_console_.println();
 	serial_console_.println(F("fridge " FRIDGE_REVISION));
 
-	Network::start();
-
+	network_.start();
+	config_syslog();
 	shell_prompt();
 
-	relay(false);
 	buzzer(false);
 }
 
 void Fridge::loop() {
 	uuid::loop();
+	syslog_.loop();
 	uuid::console::Shell::loop_all();
 
 	if (shell_) {
@@ -94,6 +99,19 @@ void Fridge::relay(bool value) {
 void Fridge::buzzer(bool value) {
 	logger_.debug(F("Buzzer %S"), value ? __pstr__enabled : __pstr__disabled);
 	digitalWrite(BUZZER_PIN, value ? HIGH : LOW);
+}
+
+void Fridge::config_syslog() {
+	Config config;
+	IPAddress addr;
+
+	if (!addr.fromString(config.get_syslog_host().c_str())) {
+		addr = (uint32_t)0;
+	}
+
+	syslog_.set_log_level(config.get_syslog_level());
+	syslog_.set_host(addr);
+	syslog_.set_hostname(config.get_hostname());
 }
 
 } // namespace fridge

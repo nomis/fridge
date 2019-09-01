@@ -50,6 +50,12 @@ public:
 	std::string get_wifi_password() const;
 	void set_wifi_password(const std::string &wifi_password);
 
+	std::string get_syslog_host() const;
+	void set_syslog_host(const std::string &syslog_host);
+
+	uuid::log::Level get_syslog_level() const;
+	void set_syslog_level(uuid::log::Level syslog_level);
+
 	void commit();
 
 private:
@@ -72,6 +78,8 @@ private:
 	static float maximum_temperature_;
 	static std::string wifi_password_;
 	static std::string wifi_ssid_;
+	static std::string syslog_host_;
+	static uuid::log::Level syslog_level_;
 
 	bool read_config(const std::string &filename, bool load = true);
 	void read_config(const ArduinoJson::JsonDocument &doc);
