@@ -65,9 +65,10 @@ MAKE_PSTR_WORD(level)
 MAKE_PSTR_WORD(log)
 MAKE_PSTR_WORD(logout)
 MAKE_PSTR_WORD(minimum)
+MAKE_PSTR_WORD(mark)
 MAKE_PSTR_WORD(maximum)
-MAKE_PSTR_WORD(mkfs)
 MAKE_PSTR_WORD(memory)
+MAKE_PSTR_WORD(mkfs)
 MAKE_PSTR_WORD(name)
 MAKE_PSTR_WORD(network)
 MAKE_PSTR_WORD(off)
@@ -88,7 +89,6 @@ MAKE_PSTR_WORD(su)
 MAKE_PSTR_WORD(sync)
 MAKE_PSTR_WORD(syslog)
 MAKE_PSTR_WORD(system)
-MAKE_PSTR_WORD(trace)
 MAKE_PSTR_WORD(type)
 MAKE_PSTR_WORD(unknown)
 MAKE_PSTR_WORD(uptime)
@@ -102,12 +102,14 @@ MAKE_PSTR(invalid_password, "su: incorrect password")
 MAKE_PSTR(ip_address_optional, "[IP address]")
 MAKE_PSTR(log_level_is_fmt, "Log level = %s")
 MAKE_PSTR(minimum_temperature_fmt, "Minimum temperature = %.2f°C");
+MAKE_PSTR(mark_interval_is_fmt, "Mark interval = %lus");
 MAKE_PSTR(maximum_temperature_fmt, "Maximum temperature = %.2f°C");
 MAKE_PSTR(name_mandatory, "<name>")
 MAKE_PSTR(name_optional, "[name]")
 MAKE_PSTR(new_password_prompt1, "Enter new password: ")
 MAKE_PSTR(new_password_prompt2, "Retype new password: ")
 MAKE_PSTR(password_prompt, "Password: ")
+MAKE_PSTR(seconds_optional, "[seconds]")
 MAKE_PSTR(unset, "<unset>")
 MAKE_PSTR(wifi_ssid_fmt, "WiFi SSID = %s");
 MAKE_PSTR(wifi_password_fmt, "WiFi Password = %S");
@@ -117,8 +119,8 @@ static constexpr unsigned long INVALID_PASSWORD_DELAY_MS = 3000;
 static void add_console_log_command(std::shared_ptr<Commands> &commands, LogLevel level) {
 	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(console), F_(log), uuid::log::format_level_lowercase(level)},
 			[=] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
-		shell.set_log_level(level);
-		shell.printfln(F_(log_level_is_fmt), uuid::log::format_level_uppercase(shell.get_log_level()));
+		shell.log_level(level);
+		shell.printfln(F_(log_level_is_fmt), uuid::log::format_level_uppercase(shell.log_level()));
 	});
 }
 
@@ -137,7 +139,7 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 	#define NO_ARGUMENTS std::vector<std::string>{}
 
 	auto console_log = [] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
-		shell.printfln(F_(log_level_is_fmt), uuid::log::format_level_uppercase(shell.get_log_level()));
+		shell.printfln(F_(log_level_is_fmt), uuid::log::format_level_uppercase(shell.log_level()));
 	};
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(console), F_(log)}, console_log);
@@ -539,6 +541,18 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 	add_syslog_level_command(commands, LogLevel::DEBUG);
 	add_syslog_level_command(commands, LogLevel::TRACE);
 	add_syslog_level_command(commands, LogLevel::ALL);
+
+	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(syslog), F_(mark)}, flash_string_vector{F_(seconds_optional)},
+			[] (Shell &shell, const std::vector<std::string> &arguments) {
+		Config config;
+		if (!arguments.empty()) {
+			config.set_syslog_mark_interval(String(arguments[0].c_str()).toInt());
+			config.commit();
+		}
+		shell.printfln(F_(mark_interval_is_fmt), config.get_syslog_mark_interval());
+		Fridge::config_syslog();
+	});
+
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN | CommandFlags::LOCAL, flash_string_vector{F_(wifi), F_(connect)},
 			[&] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {

@@ -44,7 +44,8 @@ namespace fridge {
 		FRIDGE_CONFIG_SIMPLE(std::string, "", wifi_ssid, "", ().c_str(), "") \
 		FRIDGE_CONFIG_SIMPLE(std::string, "", wifi_password, "", ().c_str(), "") \
 		FRIDGE_CONFIG_CUSTOM(std::string, "", syslog_host, "", ().c_str(), "") \
-		FRIDGE_CONFIG_ENUM(uuid::log::Level, "", syslog_level, "", (), uuid::log::Level::OFF)
+		FRIDGE_CONFIG_ENUM(uuid::log::Level, "", syslog_level, "", (), uuid::log::Level::OFF) \
+		FRIDGE_CONFIG_SIMPLE(unsigned long, "", syslog_mark_interval, "", (), 0)
 
 #define FRIDGE_CONFIG_SIMPLE FRIDGE_CONFIG_GENERIC
 #define FRIDGE_CONFIG_CUSTOM FRIDGE_CONFIG_GENERIC

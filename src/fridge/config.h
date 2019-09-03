@@ -56,6 +56,9 @@ public:
 	uuid::log::Level get_syslog_level() const;
 	void set_syslog_level(uuid::log::Level syslog_level);
 
+	unsigned long get_syslog_mark_interval() const;
+	void set_syslog_mark_interval(const unsigned long &syslog_mark_interval);
+
 	void commit();
 
 private:
@@ -80,6 +83,7 @@ private:
 	static std::string wifi_ssid_;
 	static std::string syslog_host_;
 	static uuid::log::Level syslog_level_;
+	static unsigned long syslog_mark_interval_;
 
 	bool read_config(const std::string &filename, bool load = true);
 	void read_config(const ArduinoJson::JsonDocument &doc);

@@ -109,9 +109,10 @@ void Fridge::config_syslog() {
 		addr = (uint32_t)0;
 	}
 
-	syslog_.set_log_level(config.get_syslog_level());
-	syslog_.set_host(addr);
-	syslog_.set_hostname(config.get_hostname());
+	syslog_.hostname(config.get_hostname());
+	syslog_.log_level(config.get_syslog_level());
+	syslog_.mark_interval(config.get_syslog_mark_interval());
+	syslog_.destination(addr);
 }
 
 } // namespace fridge
