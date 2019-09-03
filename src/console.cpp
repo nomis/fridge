@@ -128,9 +128,9 @@ static void add_syslog_level_command(std::shared_ptr<Commands> &commands, LogLev
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(syslog), F_(level), uuid::log::format_level_lowercase(level)},
 			[=] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
 		Config config;
-		config.set_syslog_level(level);
+		config.syslog_level(level);
 		config.commit();
-		shell.printfln(F_(log_level_is_fmt), uuid::log::format_level_uppercase(config.get_syslog_level()));
+		shell.printfln(F_(log_level_is_fmt), uuid::log::format_level_uppercase(config.syslog_level()));
 		Fridge::config_syslog();
 	});
 }
@@ -216,7 +216,7 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 								if (completed) {
 									if (password1 == password2) {
 										Config config;
-										config.set_admin_password(password2);
+										config.admin_password(password2);
 										config.commit();
 										shell.println(F("Admin password updated"));
 									} else {
@@ -251,11 +251,11 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(set)},
 			[] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
 		Config config;
-		shell.printfln(F_(minimum_temperature_fmt), config.get_minimum_temperature());
-		shell.printfln(F_(maximum_temperature_fmt), config.get_maximum_temperature());
+		shell.printfln(F_(minimum_temperature_fmt), config.minimum_temperature());
+		shell.printfln(F_(maximum_temperature_fmt), config.maximum_temperature());
 		if (shell.has_flags(CommandFlags::ADMIN | CommandFlags::LOCAL)) {
-			shell.printfln(F_(wifi_ssid_fmt), config.get_wifi_ssid().empty() ? uuid::read_flash_string(F_(unset)).c_str() : config.get_wifi_ssid().c_str());
-			shell.printfln(F_(wifi_password_fmt), config.get_wifi_password().empty() ? F_(unset) : F_(asterisks));
+			shell.printfln(F_(wifi_ssid_fmt), config.wifi_ssid().empty() ? uuid::read_flash_string(F_(unset)).c_str() : config.wifi_ssid().c_str());
+			shell.printfln(F_(wifi_password_fmt), config.wifi_password().empty() ? F_(unset) : F_(asterisks));
 		}
 	});
 
@@ -264,9 +264,9 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 		Config config;
 
 		if (arguments.empty()) {
-			config.set_hostname("");
+			config.hostname("");
 		} else {
-			config.set_hostname(arguments.front());
+			config.hostname(arguments.front());
 		}
 		config.commit();
 
@@ -276,37 +276,37 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(set), F_(minimum)}, flash_string_vector{F_(celsius_mandatory)},
 			[] (Shell &shell, const std::vector<std::string> &arguments) {
 		Config config;
-		bool max_changed = config.set_minimum_temperature(String(arguments.front().c_str()).toFloat());
+		bool max_changed = config.minimum_temperature(String(arguments.front().c_str()).toFloat());
 		config.commit();
 
-		shell.printfln(F_(minimum_temperature_fmt), config.get_minimum_temperature());
+		shell.printfln(F_(minimum_temperature_fmt), config.minimum_temperature());
 		if (max_changed) {
-			shell.printfln(F_(maximum_temperature_fmt), config.get_maximum_temperature());
+			shell.printfln(F_(maximum_temperature_fmt), config.maximum_temperature());
 		}
 	});
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(set), F_(maximum)}, flash_string_vector{F_(celsius_mandatory)},
 			[] (Shell &shell, const std::vector<std::string> &arguments) {
 		Config config;
-		bool min_changed = config.set_maximum_temperature(String(arguments.front().c_str()).toFloat());
+		bool min_changed = config.maximum_temperature(String(arguments.front().c_str()).toFloat());
 		config.commit();
 
 		if (min_changed) {
-			shell.printfln(F_(minimum_temperature_fmt), config.get_minimum_temperature());
+			shell.printfln(F_(minimum_temperature_fmt), config.minimum_temperature());
 		}
-		shell.printfln(F_(maximum_temperature_fmt), config.get_maximum_temperature());
+		shell.printfln(F_(maximum_temperature_fmt), config.maximum_temperature());
 	});
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN | CommandFlags::LOCAL, flash_string_vector{F_(set), F_(wifi), F_(ssid)}, flash_string_vector{F_(name_mandatory)},
 			[] (Shell &shell, const std::vector<std::string> &arguments) {
 		Config config;
-		config.set_wifi_ssid(arguments.front());
+		config.wifi_ssid(arguments.front());
 		config.commit();
-		shell.printfln(F_(wifi_ssid_fmt), config.get_wifi_ssid().empty() ? uuid::read_flash_string(F_(unset)).c_str() : config.get_wifi_ssid().c_str());
+		shell.printfln(F_(wifi_ssid_fmt), config.wifi_ssid().empty() ? uuid::read_flash_string(F_(unset)).c_str() : config.wifi_ssid().c_str());
 	},
 	[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) -> std::vector<std::string> {
 		Config config;
-		return std::vector<std::string>{config.get_wifi_ssid()};
+		return std::vector<std::string>{config.wifi_ssid()};
 	});
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN | CommandFlags::LOCAL, flash_string_vector{F_(set), F_(wifi), F_(password)},
@@ -317,7 +317,7 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 								if (completed) {
 									if (password1 == password2) {
 										Config config;
-										config.set_wifi_password(password2);
+										config.wifi_password(password2);
 										config.commit();
 										shell.println(F("WiFi password updated"));
 									} else {
@@ -425,7 +425,7 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 				if (completed) {
 					uint64_t now = uuid::get_uptime_ms();
 
-					if (!password.empty() && password == Config().get_admin_password()) {
+					if (!password.empty() && password == Config().admin_password()) {
 						become_admin(shell);
 					} else {
 						shell.delay_until(now + INVALID_PASSWORD_DELAY_MS, [] (Shell &shell) {
@@ -516,10 +516,10 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 			[] (Shell &shell, const std::vector<std::string> &arguments) {
 		Config config;
 		if (!arguments.empty()) {
-			config.set_syslog_host(arguments[0]);
+			config.syslog_host(arguments[0]);
 			config.commit();
 		}
-		auto host = config.get_syslog_host();
+		auto host = config.syslog_host();
 		shell.printfln(F_(host_is_fmt), !host.empty() ? host.c_str() : uuid::read_flash_string(F_(unset)).c_str());
 		Fridge::config_syslog();
 	});
@@ -527,7 +527,7 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(syslog), F_(level)},
 			[] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
 		Config config;
-		shell.printfln(F_(log_level_is_fmt), uuid::log::format_level_uppercase(config.get_syslog_level()));
+		shell.printfln(F_(log_level_is_fmt), uuid::log::format_level_uppercase(config.syslog_level()));
 	});
 
 	add_syslog_level_command(commands, LogLevel::OFF);
@@ -546,10 +546,10 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 			[] (Shell &shell, const std::vector<std::string> &arguments) {
 		Config config;
 		if (!arguments.empty()) {
-			config.set_syslog_mark_interval(String(arguments[0].c_str()).toInt());
+			config.syslog_mark_interval(String(arguments[0].c_str()).toInt());
 			config.commit();
 		}
-		shell.printfln(F_(mark_interval_is_fmt), config.get_syslog_mark_interval());
+		shell.printfln(F_(mark_interval_is_fmt), config.syslog_mark_interval());
 		Fridge::config_syslog();
 	});
 
@@ -625,7 +625,7 @@ void FridgeShell::display_banner() {
 
 std::string FridgeShell::hostname_text() {
 	Config config;
-	std::string hostname = config.get_hostname();
+	std::string hostname = config.hostname();
 
 	if (hostname.empty()) {
 		hostname.resize(16, '\0');

@@ -62,9 +62,9 @@ FRIDGE_CONFIG_DATA
 
 void Config::read_config(const ArduinoJson::JsonDocument &doc) {
 #define FRIDGE_CONFIG_GENERIC(__type, __key_prefix, __name, __key_suffix, __get_function, __read_default, ...) \
-		set_##__name(doc[FPSTR(__pstr__##__name)] | __read_default, ##__VA_ARGS__);
+		__name(doc[FPSTR(__pstr__##__name)] | __read_default, ##__VA_ARGS__);
 #define FRIDGE_CONFIG_ENUM(__type, __key_prefix, __name, __key_suffix, __get_function, __read_default, ...) \
-		set_##__name(static_cast<__type>(doc[FPSTR(__pstr__##__name)] | static_cast<int>(__read_default)), ##__VA_ARGS__);
+		__name(static_cast<__type>(doc[FPSTR(__pstr__##__name)] | static_cast<int>(__read_default)), ##__VA_ARGS__);
 	FRIDGE_CONFIG_DATA
 #undef FRIDGE_CONFIG_GENERIC
 #undef FRIDGE_CONFIG_ENUM
@@ -72,9 +72,9 @@ void Config::read_config(const ArduinoJson::JsonDocument &doc) {
 
 void Config::write_config(ArduinoJson::JsonDocument &doc) {
 #define FRIDGE_CONFIG_GENERIC(__type, __key_prefix, __name, __key_suffix, __get_function, __read_default, ...) \
-		doc[FPSTR(__pstr__##__name)] = get_ ## __name __get_function;
+		doc[FPSTR(__pstr__##__name)] = __name __get_function;
 #define FRIDGE_CONFIG_ENUM(__type, __key_prefix, __name, __key_suffix, __get_function, __read_default, ...) \
-		doc[FPSTR(__pstr__##__name)] = static_cast<int>(get_ ## __name __get_function);
+		doc[FPSTR(__pstr__##__name)] = static_cast<int>(__name __get_function);
 	FRIDGE_CONFIG_DATA
 #undef FRIDGE_CONFIG_GENERIC
 }
@@ -86,23 +86,23 @@ void Config::write_config(ArduinoJson::JsonDocument &doc) {
 
 /* Create getters/setters for simple config items only */
 #define FRIDGE_CONFIG_SIMPLE(__type, __key_prefix, __name, __key_suffix, __get_function, __read_default, ...) \
-		__type Config::get_##__name() const { \
+		__type Config::__name() const { \
 			return __name##_; \
 		} \
-		void Config::set_##__name(const __type &__name) { \
+		void Config::__name(const __type &__name) { \
 			__name##_ = __name; \
 		}
 #define FRIDGE_CONFIG_ENUM(__type, __key_prefix, __name, __key_suffix, __get_function, __read_default, ...) \
-		__type Config::get_##__name() const { \
+		__type Config::__name() const { \
 			return __name##_; \
 		} \
-		void Config::set_##__name(__type __name) { \
+		void Config::__name(__type __name) { \
 			__name##_ = __name; \
 		}
 
 /* Create getters for config items with custom setters */
 #define FRIDGE_CONFIG_CUSTOM(__type, __key_prefix, __name, __key_suffix, __get_function, __read_default, ...) \
-		__type Config::get_##__name() const { \
+		__type Config::__name() const { \
 			return __name##_; \
 		}
 
@@ -148,7 +148,7 @@ Config::Config() {
 	}
 }
 
-bool Config::set_minimum_temperature(float temperature, bool load) {
+bool Config::minimum_temperature(float temperature, bool load) {
 	if (!std::isfinite(temperature)) {
 		if (load) {
 			temperature = DEFAULT_MINIMUM_TEMPERATURE_C;
@@ -169,7 +169,7 @@ bool Config::set_minimum_temperature(float temperature, bool load) {
 	}
 }
 
-bool Config::set_maximum_temperature(float temperature, bool load) {
+bool Config::maximum_temperature(float temperature, bool load) {
 	if (!std::isfinite(temperature)) {
 		if (load) {
 			temperature = DEFAULT_MAXIMUM_TEMPERATURE_C;
@@ -190,7 +190,7 @@ bool Config::set_maximum_temperature(float temperature, bool load) {
 	}
 }
 
-void Config::set_syslog_host(const std::string &syslog_host) {
+void Config::syslog_host(const std::string &syslog_host) {
 	IPAddress addr;
 
 	if (addr.fromString(syslog_host.c_str())) {

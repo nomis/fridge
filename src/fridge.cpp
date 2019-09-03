@@ -105,13 +105,13 @@ void Fridge::config_syslog() {
 	Config config;
 	IPAddress addr;
 
-	if (!addr.fromString(config.get_syslog_host().c_str())) {
+	if (!addr.fromString(config.syslog_host().c_str())) {
 		addr = (uint32_t)0;
 	}
 
-	syslog_.hostname(config.get_hostname());
-	syslog_.log_level(config.get_syslog_level());
-	syslog_.mark_interval(config.get_syslog_mark_interval());
+	syslog_.hostname(config.hostname());
+	syslog_.log_level(config.syslog_level());
+	syslog_.mark_interval(config.syslog_mark_interval());
 	syslog_.destination(addr);
 }
 

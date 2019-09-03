@@ -85,8 +85,8 @@ void Network::connect() {
 
 	WiFi.mode(WIFI_STA);
 
-	if (!config.get_wifi_ssid().empty()) {
-		WiFi.begin(config.get_wifi_ssid().c_str(), config.get_wifi_password().c_str());
+	if (!config.wifi_ssid().empty()) {
+		WiFi.begin(config.wifi_ssid().c_str(), config.wifi_password().c_str());
 	}
 }
 

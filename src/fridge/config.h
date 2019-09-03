@@ -32,32 +32,32 @@ public:
 	Config();
 	~Config() = default;
 
-	std::string get_admin_password() const;
-	void set_admin_password(const std::string &admin_password);
+	std::string admin_password() const;
+	void admin_password(const std::string &admin_password);
 
-	std::string get_hostname() const;
-	void set_hostname(const std::string &hostname);
+	std::string hostname() const;
+	void hostname(const std::string &hostname);
 
-	float get_minimum_temperature() const;
-	bool set_minimum_temperature(float temperature, bool load = false);
+	float minimum_temperature() const;
+	bool minimum_temperature(float temperature, bool load = false);
 
-	float get_maximum_temperature() const;
-	bool set_maximum_temperature(float temperature, bool load = false);
+	float maximum_temperature() const;
+	bool maximum_temperature(float temperature, bool load = false);
 
-	std::string get_wifi_ssid() const;
-	void set_wifi_ssid(const std::string &wifi_ssid);
+	std::string wifi_ssid() const;
+	void wifi_ssid(const std::string &wifi_ssid);
 
-	std::string get_wifi_password() const;
-	void set_wifi_password(const std::string &wifi_password);
+	std::string wifi_password() const;
+	void wifi_password(const std::string &wifi_password);
 
-	std::string get_syslog_host() const;
-	void set_syslog_host(const std::string &syslog_host);
+	std::string syslog_host() const;
+	void syslog_host(const std::string &syslog_host);
 
-	uuid::log::Level get_syslog_level() const;
-	void set_syslog_level(uuid::log::Level syslog_level);
+	uuid::log::Level syslog_level() const;
+	void syslog_level(uuid::log::Level syslog_level);
 
-	unsigned long get_syslog_mark_interval() const;
-	void set_syslog_mark_interval(const unsigned long &syslog_mark_interval);
+	unsigned long syslog_mark_interval() const;
+	void syslog_mark_interval(const unsigned long &syslog_mark_interval);
 
 	void commit();
 
