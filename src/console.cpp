@@ -98,9 +98,10 @@ MAKE_PSTR(asterisks, "********")
 MAKE_PSTR(celsius_mandatory, "<°C>")
 MAKE_PSTR(host_is_fmt, "Host = %s")
 MAKE_PSTR(id_mandatory, "<id>")
-MAKE_PSTR(invalid_password, "su: incorrect password")
+MAKE_PSTR(invalid_log_level, "Invalid log level")
 MAKE_PSTR(ip_address_optional, "[IP address]")
 MAKE_PSTR(log_level_is_fmt, "Log level = %s")
+MAKE_PSTR(log_level_optional, "[level]")
 MAKE_PSTR(minimum_temperature_fmt, "Minimum temperature = %.2f°C");
 MAKE_PSTR(mark_interval_is_fmt, "Mark interval = %lus");
 MAKE_PSTR(maximum_temperature_fmt, "Maximum temperature = %.2f°C");
@@ -116,45 +117,26 @@ MAKE_PSTR(wifi_password_fmt, "WiFi Password = %S");
 
 static constexpr unsigned long INVALID_PASSWORD_DELAY_MS = 3000;
 
-static void add_console_log_command(std::shared_ptr<Commands> &commands, LogLevel level) {
-	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(console), F_(log), uuid::log::format_level_lowercase(level)},
-			[=] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
-		shell.log_level(level);
-		shell.printfln(F_(log_level_is_fmt), uuid::log::format_level_uppercase(shell.log_level()));
-	});
-}
-
-static void add_syslog_level_command(std::shared_ptr<Commands> &commands, LogLevel level) {
-	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(syslog), F_(level), uuid::log::format_level_lowercase(level)},
-			[=] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
-		Config config;
-		config.syslog_level(level);
-		config.commit();
-		shell.printfln(F_(log_level_is_fmt), uuid::log::format_level_uppercase(config.syslog_level()));
-		Fridge::config_syslog();
-	});
-}
-
 static void setup_commands(std::shared_ptr<Commands> &commands) {
 	#define NO_ARGUMENTS std::vector<std::string>{}
 
-	auto console_log = [] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
+	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(console), F_(log)}, flash_string_vector{F_(log_level_optional)},
+			[] (Shell &shell, const std::vector<std::string> &arguments) {
+		if (!arguments.empty()) {
+			uuid::log::Level level;
+
+			if (uuid::log::parse_level_lowercase(arguments[0], level)) {
+				shell.log_level(level);
+			} else {
+				shell.printfln(F_(invalid_log_level));
+				return;
+			}
+		}
 		shell.printfln(F_(log_level_is_fmt), uuid::log::format_level_uppercase(shell.log_level()));
-	};
-
-	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(console), F_(log)}, console_log);
-
-	add_console_log_command(commands, LogLevel::OFF);
-	add_console_log_command(commands, LogLevel::EMERG);
-	add_console_log_command(commands, LogLevel::CRIT);
-	add_console_log_command(commands, LogLevel::ALERT);
-	add_console_log_command(commands, LogLevel::ERR);
-	add_console_log_command(commands, LogLevel::WARNING);
-	add_console_log_command(commands, LogLevel::NOTICE);
-	add_console_log_command(commands, LogLevel::INFO);
-	add_console_log_command(commands, LogLevel::DEBUG);
-	add_console_log_command(commands, LogLevel::TRACE);
-	add_console_log_command(commands, LogLevel::ALL);
+	},
+	[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) -> std::vector<std::string> {
+		return uuid::log::levels_lowercase();
+	});
 
 	auto main_exit_user_function = [] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
 		shell.stop();
@@ -210,22 +192,24 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(passwd)},
 			[] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
-		shell.enter_password(F_(new_password_prompt1), [] (Shell &shell, bool completed, const std::string &password1) {
-						if (completed) {
-							shell.enter_password(F_(new_password_prompt2), [password1] (Shell &shell, bool completed, const std::string &password2) {
-								if (completed) {
-									if (password1 == password2) {
-										Config config;
-										config.admin_password(password2);
-										config.commit();
-										shell.println(F("Admin password updated"));
-									} else {
-										shell.println(F("Passwords do not match"));
-									}
-								}
-							});
+		shell.enter_password(F_(new_password_prompt1),
+				[] (Shell &shell, bool completed, const std::string &password1) {
+			if (completed) {
+				shell.enter_password(F_(new_password_prompt2),
+						[password1] (Shell &shell, bool completed, const std::string &password2) {
+					if (completed) {
+						if (password1 == password2) {
+							Config config;
+							config.admin_password(password2);
+							config.commit();
+							shell.println(F("Admin password updated"));
+						} else {
+							shell.println(F("Passwords do not match"));
 						}
-					});
+					}
+				});
+			}
+		});
 	});
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(relay), F_(on)},
@@ -430,7 +414,7 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 					} else {
 						shell.delay_until(now + INVALID_PASSWORD_DELAY_MS, [] (Shell &shell) {
 							shell.logger().log(LogLevel::NOTICE, LogFacility::AUTH, "Invalid admin password on console %s", dynamic_cast<FridgeShell&>(shell).console_name().c_str());
-							shell.println(F_(invalid_password));
+							shell.println(F("su: incorrect password"));
 						});
 					}
 				}
@@ -509,7 +493,6 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 		} else {
 			shell.logger().alert(msg);
 		}
-
 	});
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(syslog), F_(host)}, flash_string_vector{F_(ip_address_optional)},
@@ -524,23 +507,26 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 		Fridge::config_syslog();
 	});
 
-	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(syslog), F_(level)},
-			[] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
+	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(syslog), F_(level)}, flash_string_vector{F_(log_level_optional)},
+			[] (Shell &shell, const std::vector<std::string> &arguments) {
 		Config config;
-		shell.printfln(F_(log_level_is_fmt), uuid::log::format_level_uppercase(config.syslog_level()));
-	});
+		if (!arguments.empty()) {
+			uuid::log::Level level;
 
-	add_syslog_level_command(commands, LogLevel::OFF);
-	add_syslog_level_command(commands, LogLevel::EMERG);
-	add_syslog_level_command(commands, LogLevel::CRIT);
-	add_syslog_level_command(commands, LogLevel::ALERT);
-	add_syslog_level_command(commands, LogLevel::ERR);
-	add_syslog_level_command(commands, LogLevel::WARNING);
-	add_syslog_level_command(commands, LogLevel::NOTICE);
-	add_syslog_level_command(commands, LogLevel::INFO);
-	add_syslog_level_command(commands, LogLevel::DEBUG);
-	add_syslog_level_command(commands, LogLevel::TRACE);
-	add_syslog_level_command(commands, LogLevel::ALL);
+			if (uuid::log::parse_level_lowercase(arguments[0], level)) {
+				config.syslog_level(level);
+				config.commit();
+				Fridge::config_syslog();
+			} else {
+				shell.printfln(F_(invalid_log_level));
+				return;
+			}
+		}
+		shell.printfln(F_(log_level_is_fmt), uuid::log::format_level_uppercase(config.syslog_level()));
+	},
+	[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) -> std::vector<std::string> {
+		return uuid::log::levels_lowercase();
+	});
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::ADMIN, flash_string_vector{F_(syslog), F_(mark)}, flash_string_vector{F_(seconds_optional)},
 			[] (Shell &shell, const std::vector<std::string> &arguments) {
