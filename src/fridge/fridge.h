@@ -24,6 +24,7 @@
 #include <memory>
 
 #include <uuid/syslog.h>
+#include <uuid/telnet.h>
 
 #include "fridge/console.h"
 #include "fridge/network.h"
@@ -60,6 +61,7 @@ private:
 	static uuid::log::Logger logger_;
 	static fridge::Network network_;
 	static uuid::syslog::SyslogService syslog_;
+	static uuid::telnet::TelnetService telnet_;
 	static std::shared_ptr<fridge::FridgeShell> shell_;
 };
 

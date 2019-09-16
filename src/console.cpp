@@ -398,7 +398,7 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(su)},
 			[=] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
 		auto become_admin = [] (Shell &shell) {
-			shell.logger().log(LogLevel::NOTICE, LogFacility::AUTH, "Admin session opened on console %s", dynamic_cast<FridgeShell&>(shell).console_name().c_str());
+			shell.logger().log(LogLevel::NOTICE, LogFacility::AUTH, F("Admin session opened on console %s"), dynamic_cast<FridgeShell&>(shell).console_name().c_str());
 			shell.add_flags(CommandFlags::ADMIN);
 		};
 
@@ -413,7 +413,7 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 						become_admin(shell);
 					} else {
 						shell.delay_until(now + INVALID_PASSWORD_DELAY_MS, [] (Shell &shell) {
-							shell.logger().log(LogLevel::NOTICE, LogFacility::AUTH, "Invalid admin password on console %s", dynamic_cast<FridgeShell&>(shell).console_name().c_str());
+							shell.logger().log(LogLevel::NOTICE, LogFacility::AUTH, F("Invalid admin password on console %s"), dynamic_cast<FridgeShell&>(shell).console_name().c_str());
 							shell.println(F("su: incorrect password"));
 						});
 					}
@@ -591,11 +591,14 @@ bool FridgeShell::exit_context() {
 }
 
 void FridgeShell::started() {
-	logger().log(LogLevel::INFO, LogFacility::CONSOLE, "User session opened on console %s", console_name().c_str());
+	logger().log(LogLevel::INFO, LogFacility::CONSOLE, F("User session opened on console %s"), console_name().c_str());
 }
 
 void FridgeShell::stopped() {
-	logger().log(LogLevel::INFO, LogFacility::CONSOLE, "User session closed on console %s", console_name().c_str());
+	if (has_flags(CommandFlags::ADMIN)) {
+		logger().log(LogLevel::INFO, LogFacility::AUTH, F("Admin session closed on console %s"), console_name().c_str());
+	}
+	logger().log(LogLevel::INFO, LogFacility::CONSOLE, F("User session closed on console %s"), console_name().c_str());
 }
 
 void FridgeShell::display_banner() {
@@ -653,12 +656,26 @@ void FridgeShell::end_of_transmission() {
 }
 
 FridgeStreamConsole::FridgeStreamConsole(Stream &stream, bool local)
-		: uuid::console::Shell(commands_, ShellContext::MAIN, local ? (CommandFlags::USER | CommandFlags::LOCAL) : CommandFlags::USER), uuid::console::StreamConsole(stream), FridgeShell() {
+		: uuid::console::Shell(commands_, ShellContext::MAIN, local ? (CommandFlags::USER | CommandFlags::LOCAL) : CommandFlags::USER),
+		  uuid::console::StreamConsole(stream),
+		  FridgeShell(),
+		  name_(uuid::read_flash_string(F("ttyS0"))) {
 
 }
 
+FridgeStreamConsole::FridgeStreamConsole(Stream &stream, const IPAddress &addr, uint16_t port)
+		: uuid::console::Shell(commands_, ShellContext::MAIN, CommandFlags::USER),
+		  uuid::console::StreamConsole(stream),
+		  FridgeShell() {
+	std::vector<char> text(64);
+
+	snprintf_P(text.data(), text.size(), PSTR("pty/[%s]:%u"), uuid::printable_to_string(addr).c_str(), port);
+
+	name_ = text.data();
+}
+
 std::string FridgeStreamConsole::console_name() {
-	return uuid::read_flash_string(F("ttyS0"));
+	return name_;
 }
 
 } // namespace fridge

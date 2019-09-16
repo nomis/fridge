@@ -21,7 +21,14 @@
 
 #include <uuid/console.h>
 
+#ifdef ARDUINO_ARCH_ESP8266
+# include <ESP8266WiFi.h>
+#else
+# include <WiFi.h>
+#endif
+
 #include <memory>
+#include <string>
 
 #ifdef LOCAL
 # undef LOCAL
@@ -51,6 +58,8 @@ public:
 protected:
 	FridgeShell();
 
+	static std::shared_ptr<uuid::console::Commands> commands_;
+
 	void started() override;
 	void display_banner() override;
 	std::string hostname_text() override;
@@ -59,8 +68,6 @@ protected:
 	void end_of_transmission() override;
 	void stopped() override;
 
-	static std::shared_ptr<uuid::console::Commands> commands_;
-
 private:
 	std::string sensor_;
 };
@@ -68,9 +75,13 @@ private:
 class FridgeStreamConsole: public uuid::console::StreamConsole, public FridgeShell {
 public:
 	FridgeStreamConsole(Stream &stream, bool local);
+	FridgeStreamConsole(Stream &stream, const IPAddress &addr, uint16_t port);
 	~FridgeStreamConsole() override = default;
 
-	virtual std::string console_name();
+	std::string console_name();
+
+private:
+	std::string name_;
 };
 
 } // namespace fridge

@@ -26,6 +26,7 @@
 #include <uuid/console.h>
 #include <uuid/log.h>
 #include <uuid/syslog.h>
+#include <uuid/telnet.h>
 
 #include "fridge/config.h"
 #include "fridge/console.h"
@@ -40,6 +41,9 @@ namespace fridge {
 uuid::log::Logger Fridge::logger_{FPSTR(__pstr__logger_name), uuid::log::Facility::KERN};
 fridge::Network Fridge::network_;
 uuid::syslog::SyslogService Fridge::syslog_;
+uuid::telnet::TelnetService Fridge::telnet_([] (Stream &stream, const IPAddress &addr, uint16_t port) -> std::shared_ptr<uuid::console::Shell> {
+	return std::make_shared<fridge::FridgeStreamConsole>(stream, addr, port);
+});
 std::shared_ptr<FridgeShell> Fridge::shell_;
 
 void Fridge::start() {
@@ -62,6 +66,8 @@ void Fridge::start() {
 
 	network_.start();
 	config_syslog();
+	telnet_.default_write_timeout(1000);
+	telnet_.start();
 	shell_prompt();
 
 	buzzer(false);
@@ -70,6 +76,7 @@ void Fridge::start() {
 void Fridge::loop() {
 	uuid::loop();
 	syslog_.loop();
+	telnet_.loop();
 	uuid::console::Shell::loop_all();
 
 	if (shell_) {

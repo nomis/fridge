@@ -70,10 +70,10 @@ void Network::sta_mode_disconnected(const WiFiEventStationModeDisconnected &even
 }
 
 void Network::sta_mode_got_ip(const WiFiEventStationModeGotIP &event) {
-	logger_.info(F("Obtained IPv4 address %u.%u.%u.%u/%u.%u.%u.%u and gateway %u.%u.%u.%u"),
-			event.ip[0], event.ip[1], event.ip[2], event.ip[3],
-			event.mask[0], event.mask[1], event.mask[2], event.mask[3],
-			event.gw[0], event.gw[1], event.gw[2], event.gw[3]);
+	logger_.info(F("Obtained IPv4 address %s/%s and gateway %s"),
+			uuid::printable_to_string(event.ip).c_str(),
+			uuid::printable_to_string(event.mask).c_str(),
+			uuid::printable_to_string(event.gw).c_str());
 }
 
 void Network::sta_mode_dhcp_timeout() {
@@ -161,19 +161,15 @@ void Network::print_status(uuid::console::Shell &shell) {
 			shell.printfln(F("Hostname: %s"), WiFi.hostname().c_str());
 			shell.println();
 
-			auto ip = WiFi.localIP();
-			auto mask = WiFi.subnetMask();
-			shell.printfln(F("IPv4 address: %u.%u.%u.%u/%u.%u.%u.%u"),
-					ip[0], ip[1], ip[2], ip[3], mask[0],
-					mask[1], mask[2], mask[3]);
+			shell.printfln(F("IPv4 address: %s/%s"),
+					uuid::printable_to_string(WiFi.localIP()).c_str(),
+					uuid::printable_to_string(WiFi.subnetMask()).c_str());
 
-			ip = WiFi.gatewayIP();
-			shell.printfln(F("IPv4 gateway: %u.%u.%u.%u"),
-					ip[0], ip[1], ip[2], ip[3]);
+			shell.printfln(F("IPv4 gateway: %s"),
+					uuid::printable_to_string(WiFi.gatewayIP()).c_str());
 
-			ip = WiFi.dnsIP();
-			shell.printfln(F("IPv4 nameserver: %u.%u.%u.%u"),
-					ip[0], ip[1], ip[2], ip[3]);
+			shell.printfln(F("IPv4 nameserver: %s"),
+					uuid::printable_to_string(WiFi.dnsIP()).c_str());
 			shell.println();
 		}
 		break;
