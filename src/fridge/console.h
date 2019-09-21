@@ -29,6 +29,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #ifdef LOCAL
 # undef LOCAL
@@ -76,12 +77,17 @@ class FridgeStreamConsole: public uuid::console::StreamConsole, public FridgeShe
 public:
 	FridgeStreamConsole(Stream &stream, bool local);
 	FridgeStreamConsole(Stream &stream, const IPAddress &addr, uint16_t port);
-	~FridgeStreamConsole() override = default;
+	~FridgeStreamConsole() override;
 
 	std::string console_name();
 
 private:
+	static std::vector<bool> ptys_;
+
 	std::string name_;
+	size_t pty_;
+	IPAddress addr_;
+	uint16_t port_;
 };
 
 } // namespace fridge

@@ -27,6 +27,7 @@
 #endif
 #include <time.h>
 
+#include <limits>
 #include <memory>
 #include <string>
 #include <vector>
@@ -655,23 +656,49 @@ void FridgeShell::end_of_transmission() {
 	}
 }
 
+std::vector<bool> FridgeStreamConsole::ptys_;
+
 FridgeStreamConsole::FridgeStreamConsole(Stream &stream, bool local)
 		: uuid::console::Shell(commands_, ShellContext::MAIN, local ? (CommandFlags::USER | CommandFlags::LOCAL) : CommandFlags::USER),
 		  uuid::console::StreamConsole(stream),
 		  FridgeShell(),
-		  name_(uuid::read_flash_string(F("ttyS0"))) {
+		  name_(uuid::read_flash_string(F("ttyS0"))),
+		  pty_(std::numeric_limits<size_t>::max()),
+		  addr_(),
+		  port_(0) {
 
 }
 
 FridgeStreamConsole::FridgeStreamConsole(Stream &stream, const IPAddress &addr, uint16_t port)
 		: uuid::console::Shell(commands_, ShellContext::MAIN, CommandFlags::USER),
 		  uuid::console::StreamConsole(stream),
-		  FridgeShell() {
-	std::vector<char> text(64);
+		  FridgeShell(),
+		  addr_(addr),
+		  port_(port) {
+	std::vector<char> text(16);
 
-	snprintf_P(text.data(), text.size(), PSTR("pty/[%s]:%u"), uuid::printable_to_string(addr).c_str(), port);
+	pty_ = 0;
+	while (pty_ < ptys_.size() && ptys_[pty_])
+		pty_++;
+	if (pty_ == ptys_.size()) {
+		ptys_.push_back(true);
+	} else {
+		ptys_[pty_] = true;
+	}
 
+	snprintf_P(text.data(), text.size(), PSTR("pty%u"), pty_);
 	name_ = text.data();
+
+	logger().info(F("Allocated console %s for connection from [%s]:%u"), name_.c_str(), uuid::printable_to_string(addr_).c_str(), port_);
+}
+
+FridgeStreamConsole::~FridgeStreamConsole() {
+	if (pty_ != SIZE_MAX) {
+		logger().info(F("Shutdown console %s for connection from [%s]:%u"), name_.c_str(), uuid::printable_to_string(addr_).c_str(), port_);
+
+		ptys_[pty_] = false;
+		ptys_.shrink_to_fit();
+	}
 }
 
 std::string FridgeStreamConsole::console_name() {
