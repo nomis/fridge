@@ -21,6 +21,7 @@
 #include <Arduino.h>
 
 #include <memory>
+#include <vector>
 
 #include <uuid/common.h>
 #include <uuid/console.h>
@@ -46,6 +47,8 @@ uuid::telnet::TelnetService Fridge::telnet_([] (Stream &stream, const IPAddress 
 });
 std::shared_ptr<FridgeShell> Fridge::shell_;
 
+fridge::Sensors Fridge::sensors_;
+
 void Fridge::start() {
 	pinMode(BUZZER_PIN, OUTPUT);
 	digitalWrite(BUZZER_PIN, HIGH);
@@ -70,11 +73,14 @@ void Fridge::start() {
 	telnet_.start();
 	shell_prompt();
 
+	sensors_.start(SENSOR_PIN);
+
 	buzzer(false);
 }
 
 void Fridge::loop() {
 	uuid::loop();
+	sensors_.loop();
 	syslog_.loop();
 	telnet_.loop();
 	uuid::console::Shell::loop_all();
@@ -120,6 +126,10 @@ void Fridge::config_syslog() {
 	syslog_.log_level(config.syslog_level());
 	syslog_.mark_interval(config.syslog_mark_interval());
 	syslog_.destination(addr);
+}
+
+const std::vector<fridge::Sensors::Device> Fridge::sensor_devices() {
+	return sensors_.devices();
 }
 
 } // namespace fridge

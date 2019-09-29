@@ -22,12 +22,14 @@
 #include <Arduino.h>
 
 #include <memory>
+#include <vector>
 
 #include <uuid/syslog.h>
 #include <uuid/telnet.h>
 
 #include "fridge/console.h"
 #include "fridge/network.h"
+#include "fridge/sensors.h"
 
 namespace fridge {
 
@@ -53,6 +55,8 @@ public:
 
 	static void config_syslog();
 
+	static const std::vector<fridge::Sensors::Device> sensor_devices();
+
 private:
 	Fridge() = delete;
 
@@ -63,6 +67,8 @@ private:
 	static uuid::syslog::SyslogService syslog_;
 	static uuid::telnet::TelnetService telnet_;
 	static std::shared_ptr<fridge::FridgeShell> shell_;
+
+	static fridge::Sensors sensors_;
 };
 
 } // namespace fridge

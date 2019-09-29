@@ -327,7 +327,9 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 
 	};
 	auto show_sensors = [] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) {
-
+		for (auto& device : Fridge::sensor_devices()) {
+			shell.printfln(F("Sensor %s: %.2fC"), device.to_string().c_str(), device.temperature_c_);
+		}
 	};
 	auto show_system = [] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
 		shell.printfln(F("Chip ID:       0x%08x"), ESP.getChipId());
@@ -428,7 +430,13 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 		dynamic_cast<FridgeShell&>(shell).enter_sensor_context(arguments.front());
 	},
 	[] (Shell &shell __attribute__((unused)), const std::vector<std::string> &arguments __attribute__((unused))) -> const std::vector<std::string> {
-		return std::vector<std::string>{"aaa", "bbb", "ccc"};
+		std::vector<std::string> devices;
+
+		for (auto& device : Fridge::sensor_devices()) {
+			devices.emplace_back(device.to_string());
+		}
+
+		return devices;
 	});
 
 	commands->add_command(ShellContext::SENSOR, CommandFlags::ADMIN, flash_string_vector{F_(delete)},
@@ -629,22 +637,20 @@ std::string FridgeShell::hostname_text() {
 std::string FridgeShell::context_text() {
 	switch (static_cast<ShellContext>(context())) {
 	case ShellContext::MAIN:
-		return "/";
-		break;
+		return std::string{'/'};
 
 	case ShellContext::SENSOR:
-		return sensor_;
-		break;
+		return uuid::read_flash_string(F("/sensors/")) + sensor_;
 	}
 
-	return "";
+	return std::string{};
 }
 
 std::string FridgeShell::prompt_suffix() {
 	if (has_flags(CommandFlags::ADMIN)) {
-		return "#";
+		return std::string{'#'};
 	} else {
-		return "$";
+		return std::string{'$'};
 	}
 }
 
