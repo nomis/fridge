@@ -1,6 +1,6 @@
 /*
  * fridge - Fridge Controller
- * Copyright 2019  Simon Arlott
+ * Copyright 2019,2022  Simon Arlott
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -390,13 +390,13 @@ static void setup_commands(std::shared_ptr<Commands> &commands) {
 		shell.println();
 		show_version(shell, NO_ARGUMENTS);
 	});
-	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(memory)}, show_relay);
+	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(memory)}, show_memory);
 	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(network)}, show_network);
 	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(relay)}, show_relay);
 	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(sensors)}, show_sensors);
-	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(system)}, show_relay);
-	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(uptime)}, show_relay);
-	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(version)}, show_relay);
+	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(system)}, show_system);
+	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(uptime)}, show_uptime);
+	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(show), F_(version)}, show_version);
 
 	commands->add_command(ShellContext::MAIN, CommandFlags::USER, flash_string_vector{F_(su)},
 			[=] (Shell &shell, const std::vector<std::string> &arguments __attribute__((unused))) {
