@@ -1,6 +1,6 @@
 /*
  * fridge - Fridge Controller
- * Copyright 2019  Simon Arlott
+ * Copyright 2019,2022  Simon Arlott
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,13 +18,16 @@
 
 #include <Arduino.h>
 
-#include "fridge/fridge.h"
+#include "fridge/app.h"
+
+static fridge::App application;
 
 void setup() {
-	fridge::Fridge::start();
+    application.start();
 }
 
 void loop() {
-	fridge::Fridge::loop();
-	::yield();
+    application.loop();
+    ::yield();
 }
+

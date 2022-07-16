@@ -1,6 +1,6 @@
 /*
  * fridge - Fridge Controller
- * Copyright 2019  Simon Arlott
+ * Copyright 2019,2022  Simon Arlott
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,8 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef FRIDGE_SENSORS_H_
-#define FRIDGE_SESNORS_H_
+#pragma once
 
 #include <Arduino.h>
 
@@ -89,5 +88,3 @@ private:
 };
 
 } // namespace fridge
-
-#endif

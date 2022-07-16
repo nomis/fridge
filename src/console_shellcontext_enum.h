@@ -16,31 +16,4 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
-
-#include "app/console.h"
-
-#include <memory>
-#include <string>
-#include <vector>
-
-namespace fridge {
-
-class FridgeShell: public app::AppShell {
-public:
-	~FridgeShell() override = default;
-
-	void enter_sensor_context(std::string sensor);
-	bool exit_context() override;
-
-protected:
-	FridgeShell(app::App &app);
-
-	void display_banner() override;
-	std::string context_text() override;
-
-private:
-	std::string sensor_;
-};
-
-} // namespace fridge
+	SENSOR,

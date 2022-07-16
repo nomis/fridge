@@ -1,6 +1,6 @@
 /*
  * fridge - Fridge Controller
- * Copyright 2019  Simon Arlott
+ * Copyright 2019,2022  Simon Arlott
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,61 +16,49 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef FRIDGE_FRIDGE_H_
-#define FRIDGE_FRIDGE_H_
+#pragma once
 
 #include <Arduino.h>
 
+#include <initializer_list>
 #include <memory>
 #include <vector>
 
 #include <uuid/syslog.h>
 #include <uuid/telnet.h>
 
-#include "fridge/console.h"
-#include "fridge/network.h"
-#include "fridge/sensors.h"
+#include "../app/app.h"
+#include "../app/console.h"
+#include "../app/network.h"
+#include "sensors.h"
 
 namespace fridge {
 
-class Fridge {
+class App: public app::App {
 private:
 #if defined(ARDUINO_ESP8266_WEMOS_D1MINI) || defined(ESP8266_WEMOS_D1MINI)
-	static constexpr unsigned long SERIAL_CONSOLE_BAUD_RATE = 115200;
-	static constexpr auto& serial_console_ = Serial;
-
 	static constexpr int RELAY_PIN = 13; /* D7 */
 	static constexpr int SENSOR_PIN = 12; /* D6 */
 	static constexpr int BUZZER_PIN = 14; /* D5 */
+#elif defined(ARDUINO_LOLIN_S2_MINI)
+	static constexpr int RELAY_PIN = 13;
+	static constexpr int SENSOR_PIN = 12;
+	static constexpr int BUZZER_PIN = 14;
 #else
 # error "Unknown board"
 #endif
 
 public:
-	static void start();
-	static void loop();
+	void start() override;
+	void loop() override;
 
-	static void relay(bool value);
-	static void buzzer(bool value);
+	void relay(bool value);
+	void buzzer(bool value);
 
-	static void config_syslog();
-
-	static const std::vector<fridge::Sensors::Device> sensor_devices();
+	const std::vector<Sensors::Device> sensor_devices();
 
 private:
-	Fridge() = delete;
-
-	static void shell_prompt();
-
-	static uuid::log::Logger logger_;
-	static fridge::Network network_;
-	static uuid::syslog::SyslogService syslog_;
-	static uuid::telnet::TelnetService telnet_;
-	static std::shared_ptr<fridge::FridgeShell> shell_;
-
-	static fridge::Sensors sensors_;
+	Sensors sensors_;
 };
 
 } // namespace fridge
-
-#endif
