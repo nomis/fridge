@@ -1,6 +1,6 @@
 /*
  * fridge - Fridge Controller
- * Copyright 2019,2022  Simon Arlott
+ * Copyright 2022  Simon Arlott
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,44 +20,33 @@
 
 #include <Arduino.h>
 
-#include <initializer_list>
-#include <memory>
-#include <vector>
-
-#include <uuid/syslog.h>
-#include <uuid/telnet.h>
-
-#include "../app/app.h"
-#include "../app/console.h"
-#include "../app/network.h"
-#include "sensors.h"
-#include "door.h"
+#include <uuid/log.h>
 
 namespace fridge {
 
-class App: public app::App {
-private:
-#if defined(ARDUINO_LOLIN_S2_MINI)
-	static constexpr int RELAY_PIN = 5;
-	static constexpr int SENSOR_PIN = 12;
-	static constexpr int BUZZER_PIN = 3;
-	static constexpr int DOOR_PIN = 11;
-#else
-# error "Unknown board"
-#endif
-
+class Door {
 public:
-	void start() override;
-	void loop() override;
+	Door() = default;
+	~Door() = default;
 
-	void relay(bool value);
-	void buzzer(bool value);
-
-	const std::vector<Sensors::Device> sensor_devices();
+	void start(int pin);
+	void loop();
 
 private:
-	Sensors sensors_;
-	Door door_;
+	enum class State {
+		UNKNOWN,
+		OPEN,
+		CLOSED,
+	};
+
+	static constexpr unsigned long DEBOUNCE_INTERVAL_MS = 50;
+
+	static uuid::log::Logger logger_;
+
+	int pin_;
+	unsigned long last_activity_ = millis();
+	State stable_state_ = State::UNKNOWN;
+	State new_state_ = State::UNKNOWN;
 };
 
 } // namespace fridge

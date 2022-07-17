@@ -56,7 +56,7 @@ private:
 	enum class State {
 		IDLE,
 		READING,
-		SCANNING
+		SCANNING,
 	};
 
 	static constexpr size_t ADDR_LEN = 8;

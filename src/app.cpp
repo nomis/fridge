@@ -33,6 +33,7 @@
 #include "app/console.h"
 #include "app/network.h"
 #include "fridge/sensors.h"
+#include "fridge/door.h"
 
 static const char __pstr__enabled[] __attribute__((__aligned__(sizeof(int)))) PROGMEM = "enabled";
 static const char __pstr__disabled[] __attribute__((__aligned__(sizeof(int)))) PROGMEM = "disabled";
@@ -51,6 +52,7 @@ void App::start() {
 	relay(false);
 
 	sensors_.start(SENSOR_PIN);
+	door_.start(DOOR_PIN);
 
 	buzzer(false);
 }
@@ -58,6 +60,7 @@ void App::start() {
 void App::loop() {
 	app::App::loop();
 
+	door_.loop();
 	sensors_.loop();
 }
 
